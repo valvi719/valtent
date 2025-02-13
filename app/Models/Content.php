@@ -17,7 +17,7 @@ class Content extends Model
         return \Validator::make($data, [
             'name' => 'required|string|max:255',
             'type' => 'required|in:NFT,Media',
-            'value' => 'required_if:type,Media|file|mimes:jpg,jpeg,png,mp4,mov,avi', // file validation
+            'value' => 'required_if:type,Media|file|mimes:mp4,jpg,jpeg,png,mov,avi|max:10240', // file validation
             'cre_id' => 'nullable|integer',
         ]);
     }

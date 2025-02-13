@@ -33,7 +33,7 @@
                     <input type="text" id="name" name="name" class="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" value="{{ old('name') }}" required>
                 </div>
 
-                <!-- Type Field -->
+               <!-- Type Field -->
                 <div class="mb-4">
                     <label for="type" class="block text-gray-700">Type</label>
                     <select id="type" name="type" class="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" required>
@@ -45,9 +45,17 @@
                 <!-- Value Field (File Upload for Media) -->
                 <div id="value-field" class="mb-4 hidden">
                     <label for="value" class="block text-gray-700">Upload Media (Video or Image)</label>
-                    <input type="file" id="value" name="value" class="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500">
+                    <!-- Adding 'accept' attribute to allow MP4 video files -->
+                    <input type="file" id="value" name="value" class="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" accept="video/mp4, image/*">
                     <small class="text-gray-500">Upload a video or image file (Max 10MB)</small>
+
+                    <!-- Progress bar for upload -->
+                    <!-- <div class="mt-4">
+                        <progress id="upload-progress" value="0" max="100" class="w-full h-2 rounded bg-gray-200"></progress>
+                        <p id="progress-text" class="text-gray-500 mt-2">0% Uploaded</p>
+                    </div> -->
                 </div>
+
 
                 <!-- Submit Button -->
                 <div class="mb-4">
@@ -57,13 +65,38 @@
                 </div>
             </form>
         </div>
-        Add Button in Top-Left Corner
+        <!-- Add Button in Top-Left Corner -->
         <div class="absolute top-28 centre-2">
                 <a href="#" class="inline-block bg-green-600 text-white py-2 px-6 rounded-full hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
                     Add
                 </a>
         </div>
     </div>
+
+    <script>
+    const fileInput = document.getElementById('value');
+    const fileSizeLimit = 10 * 1024 * 1024; // 10MB limit
+
+    fileInput.addEventListener('change', function() {
+        const file = fileInput.files[0];
+        
+        if (file) {
+            // Check file type
+            if (file.type !== 'video/mp4' && !file.type.startsWith('image/')) {
+                alert('Please upload a valid MP4 video or image file');
+                fileInput.value = ''; // Reset file input
+                return;
+            }
+
+            // Check file size
+            if (file.size > fileSizeLimit) {
+                alert('File size exceeds 10MB');
+                fileInput.value = ''; // Reset file input
+                return;
+            }
+        }
+    });
+    </script>
 
     <script>
         // JavaScript to show the "Value" field when "Media" type is selected
@@ -80,6 +113,48 @@
         if (document.getElementById('type').value === 'Media') {
             document.getElementById('value-field').classList.remove('hidden');
         }
+    </script>
+    <script>
+    const fileInput = document.getElementById('value');
+    const progressBar = document.getElementById('upload-progress');
+    const progressText = document.getElementById('progress-text');
+
+    fileInput.addEventListener('change', function (event) {
+        const file = event.target.files[0];
+        if (file) {
+            uploadFile(file);
+        }
+    });
+
+    function uploadFile(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/upload-endpoint', true);  // Replace '/upload-endpoint' with your actual upload URL
+
+        xhr.upload.addEventListener('progress', function (e) {
+            if (e.lengthComputable) {
+                const percent = (e.loaded / e.total) * 100;
+                progressBar.value = percent;
+                progressText.textContent = `${Math.round(percent)}% Uploaded`;
+            }
+        });
+
+        xhr.addEventListener('load', function () {
+            if (xhr.status === 200) {
+                progressText.textContent = 'Upload Complete!';
+            } else {
+                progressText.textContent = 'Upload Failed!';
+            }
+        });
+
+        xhr.addEventListener('error', function () {
+            progressText.textContent = 'Upload Error!';
+        });
+
+        xhr.send(formData);
+    }
     </script>
 </body>
 @endsection

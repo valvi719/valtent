@@ -17,6 +17,7 @@ class ContentController extends Controller
     }
     public function store(Request $request, $id)
     {
+        // dd($request->all());
         // Validate the request data
         $cre_id = Crypt::decrypt($id);
 
