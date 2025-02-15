@@ -26,6 +26,7 @@
              
             <form action="{{ route('content.store',['id' => $id]) }}" method="POST" enctype="multipart/form-data">
                 @csrf
+                <input type="hidden" id="cre_id" value="{{$id}}">
 
                 <!-- Name Field -->
                 <div class="mb-4">
@@ -47,13 +48,13 @@
                     <label for="value" class="block text-gray-700">Upload Media (Video or Image)</label>
                     <!-- Adding 'accept' attribute to allow MP4 video files -->
                     <input type="file" id="value" name="value" class="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500" accept="video/mp4, image/*">
-                    <small class="text-gray-500">Upload a video or image file (Max 10MB)</small>
+                    <small class="text-gray-500">Upload a video or image</small>
 
                     <!-- Progress bar for upload -->
-                    <!-- <div class="mt-4">
+                    <div class="mt-4">
                         <progress id="upload-progress" value="0" max="100" class="w-full h-2 rounded bg-gray-200"></progress>
                         <p id="progress-text" class="text-gray-500 mt-2">0% Uploaded</p>
-                    </div> -->
+                    </div>
                 </div>
 
 
@@ -72,32 +73,7 @@
                 </a>
         </div>
     </div>
-
-    <script>
-    const fileInput = document.getElementById('value');
-    const fileSizeLimit = 10 * 1024 * 1024; // 10MB limit
-
-    fileInput.addEventListener('change', function() {
-        const file = fileInput.files[0];
-        
-        if (file) {
-            // Check file type
-            if (file.type !== 'video/mp4' && !file.type.startsWith('image/')) {
-                alert('Please upload a valid MP4 video or image file');
-                fileInput.value = ''; // Reset file input
-                return;
-            }
-
-            // Check file size
-            if (file.size > fileSizeLimit) {
-                alert('File size exceeds 10MB');
-                fileInput.value = ''; // Reset file input
-                return;
-            }
-        }
-    });
-    </script>
-
+    
     <script>
         // JavaScript to show the "Value" field when "Media" type is selected
         document.getElementById('type').addEventListener('change', function() {
@@ -114,14 +90,48 @@
             document.getElementById('value-field').classList.remove('hidden');
         }
     </script>
-    <script>
+    <!-- <script>
     const fileInput = document.getElementById('value');
     const progressBar = document.getElementById('upload-progress');
     const progressText = document.getElementById('progress-text');
+    let cre_id = document.getElementById('cre_id').value;
+    
+    const fileSizeLimit = 10 * 1024 * 1024; // 10MB limit
+     let csrfToken;
+    // Get the CSRF token from the meta tag
+    window.addEventListener('load', function() {
+        // Get the input element by its name attribute
+    const csrfTokenInput = document.querySelector('input[name="_token"]');
 
-    fileInput.addEventListener('change', function (event) {
+    // Check if the element exists
+    if (csrfTokenInput) {
+                // Get the value of the token
+            csrfToken = csrfTokenInput.value;
+            console.log(csrfToken);  // Prints the token value to the console
+            } else {
+            console.error('CSRF token input element not found!');
+    }
+    });
+    
+    fileInput.addEventListener('change', function(event) {
         const file = event.target.files[0];
+        
         if (file) {
+            // Check file type
+            if (file.type !== 'video/mp4' && !file.type.startsWith('image/')) {
+                alert('Please upload a valid MP4 video or image file');
+                fileInput.value = ''; // Reset file input
+                return;
+            }
+
+            // Check file size
+            if (file.size > fileSizeLimit) {
+                alert('File size exceeds 10MB');
+                fileInput.value = ''; // Reset file input
+                return;
+            }
+
+            // Start the upload process
             uploadFile(file);
         }
     });
@@ -131,9 +141,13 @@
         formData.append('file', file);
 
         const xhr = new XMLHttpRequest();
-        xhr.open('POST', '/upload-endpoint', true);  // Replace '/upload-endpoint' with your actual upload URL
+        xhr.open('POST', '/content/store/' + cre_id, true);  // Replace '/upload-endpoint' with your actual upload URL
 
-        xhr.upload.addEventListener('progress', function (e) {
+        // // Add the CSRF token to the request header
+        xhr.setRequestHeader('X-CSRF-TOKEN', csrfToken);
+
+        // Set up the progress event listener to update the progress bar
+        xhr.upload.addEventListener('progress', function(e) {
             if (e.lengthComputable) {
                 const percent = (e.loaded / e.total) * 100;
                 progressBar.value = percent;
@@ -141,7 +155,8 @@
             }
         });
 
-        xhr.addEventListener('load', function () {
+        // Success or failure handling
+        xhr.addEventListener('load', function() {
             if (xhr.status === 200) {
                 progressText.textContent = 'Upload Complete!';
             } else {
@@ -149,13 +164,101 @@
             }
         });
 
-        xhr.addEventListener('error', function () {
+        // Handle errors
+        xhr.addEventListener('error', function() {
             progressText.textContent = 'Upload Error!';
         });
 
+        // Send the file to the server
         xhr.send(formData);
     }
-    </script>
+    </script> -->
+
+    <script>
+    const fileInput = document.getElementById('value');
+    const progressBar = document.getElementById('upload-progress');
+    const progressText = document.getElementById('progress-text');
+    let cre_id = document.getElementById('cre_id').value;
+    
+    // Removed the file size limit to accept any size
+    const fileSizeLimit = Infinity; // No file size limit
+
+    let csrfToken;
+    
+    // Get the CSRF token from the meta tag
+    window.addEventListener('load', function() {
+        const csrfTokenInput = document.querySelector('input[name="_token"]');
+
+        if (csrfTokenInput) {
+            csrfToken = csrfTokenInput.value;
+            console.log(csrfToken);  // Prints the token value to the console
+        } else {
+            console.error('CSRF token input element not found!');
+        }
+    });
+
+    fileInput.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        
+        if (file) {
+            // Check file type
+            if (file.type !== 'video/mp4' && !file.type.startsWith('image/')) {
+                alert('Please upload a valid MP4 video or image file');
+                fileInput.value = ''; // Reset file input
+                return;
+            }
+
+            // Removed file size check (now accepts any file size)
+            // If you want to set a different limit, you can modify fileSizeLimit as needed
+            if (file.size > fileSizeLimit) {
+                alert('File size exceeds the limit');
+                fileInput.value = ''; // Reset file input
+                return;
+            }
+
+            // Start the upload process
+            uploadFile(file);
+        }
+    });
+
+    function uploadFile(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/content/store/' + cre_id, true);  // Replace '/upload-endpoint' with your actual upload URL
+
+        // Add the CSRF token to the request header
+        xhr.setRequestHeader('X-CSRF-TOKEN', csrfToken);
+
+        // Set up the progress event listener to update the progress bar
+        xhr.upload.addEventListener('progress', function(e) {
+            if (e.lengthComputable) {
+                const percent = (e.loaded / e.total) * 100;
+                progressBar.value = percent;
+                progressText.textContent = `${Math.round(percent)}% Uploaded`;
+            }
+        });
+
+        // Success or failure handling
+        xhr.addEventListener('load', function() {
+            if (xhr.status === 200) {
+                progressText.textContent = 'Upload Complete!';
+            } else {
+                progressText.textContent = 'Upload Failed!';
+            }
+        });
+
+        // Handle errors
+        xhr.addEventListener('error', function() {
+            progressText.textContent = 'Upload Error!';
+        });
+
+        // Send the file to the server
+        xhr.send(formData);
+    }
+</script>
+
 </body>
 @endsection
 </html>
