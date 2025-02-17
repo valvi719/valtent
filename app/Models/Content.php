@@ -9,7 +9,7 @@ class Content extends Model
 {
     use HasFactory;
     protected $table = 'contents';
-    protected $fillable = ['name', 'type', 'value','cre_id'];
+    protected $fillable = ['name', 'type', 'value','cre_id','duration'];
 
     // Validation rules
     public static function validate($data)
