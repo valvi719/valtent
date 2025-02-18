@@ -6,6 +6,9 @@ use Illuminate\Http\Request;
 use App\Models\Creator;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Mail;
+use Carbon\Carbon;
+use App\Mail\OtpVerificationMail;
 
 class CreatorController extends Controller
 {
@@ -14,8 +17,10 @@ class CreatorController extends Controller
         return view('creator_registration');
     }
 
+    // Handle Form Submission and Send OTP
     public function submitForm(Request $request)
     {
+        
         // Validation
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -35,9 +40,51 @@ class CreatorController extends Controller
             'address' => $validated['address'],
             'city' => $validated['city'],
         ]);
-         $id=Crypt::encrypt($user->id);
-        // Redirect or return a response
-        return redirect()->route('content.create',['id' => $id])->with('success', 'You are registered successfully!');
+
+        // Generate OTP
+        $otp = rand(100000, 999999); // Generate a 6-digit OTP
+        $expiresAt = Carbon::now()->addMinutes(10); // OTP expires in 10 minutes
+
+        // Save OTP to database
+        $user->otp = $otp;
+        $user->otp_expires_at = $expiresAt;
+        $user->save();
+
+        // Send OTP to user's email
+        Mail::to($user->email)->send(new OtpVerificationMail($otp));
+
+        // Encrypt user ID to pass to the next step
+        $id = Crypt::encrypt($user->id);
+
+        // Redirect to OTP verification page
+        return redirect()->route('verify.otp', ['id' => $id])->with('success', 'You are registered successfully! Check your email for OTP.');
+    }
+    // Show OTP Verification Form
+    public function showOtpForm($id)
+    {
+        return view('verify_otp', ['id' => $id]);
+    }
+     // Handle OTP Verification
+    public function verifyOtp(Request $request, $id)
+    {
+        // Decrypt the user ID
+        $userId = Crypt::decrypt($id);
+        $user = Creator::findOrFail($userId);
+
+        // Validate OTP
+        $request->validate([
+            'otp' => 'required|numeric|digits:6',
+        ]);
+
+        // Check if OTP matches and is not expired
+        if ($user->otp == $request->input('otp') && $user->otp_expires_at > Carbon::now()) {
+            // OTP verified successfully
+            $user->email_verified_at = Carbon::now(); // Mark the email as verified
+            $user->save();
+
+            return redirect()->route('content.create', ['id' => $id])->with('success', 'Email verified successfully!');
         }
-    
+
+        return back()->withErrors(['otp' => 'Invalid or expired OTP']);
+    }
 }
