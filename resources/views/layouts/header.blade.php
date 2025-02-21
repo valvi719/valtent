@@ -6,7 +6,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <div class="max-w-7xl mx-auto px-4 flex justify-between items-center">
         <!-- Logo -->
-        <a href="/images/valtent_logo.jpeg" class="text-3xl font-bold">
+        <a href="/" class="text-3xl font-bold">
             Valtent
         </a>
 
@@ -19,5 +19,61 @@
                 <li><a href="#contact" class="hover:text-green-200">Contact</a></li>
             </ul>
         </nav>
+
+        <!-- Profile and Logout Dropdown -->
+        <div class="relative">
+            <!-- Profile Icon -->
+            @auth
+                <button id="profileButton" class="w-10 h-10 rounded-full overflow-hidden border-2 border-white">
+                    <!-- Display user's profile image or initials -->
+                    @if(Auth::user()->profile_picture_url)
+                        <img src="{{ Auth::user()->profile_picture_url }}" alt="Profile" class="w-full h-full object-cover">
+                    @else
+                        <span class="flex justify-center items-center w-full h-full text-white text-lg">
+                            {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
+                        </span>
+                    @endif
+                </button>
+
+                <!-- Dropdown Menu -->
+                <div id="profileDropdown" class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg hidden">
+                    <div class="p-2">
+                        <p class="text-gray-700 font-semibold">{{ Auth::user()->name }}</p>
+                        <p class="text-gray-500 text-sm">{{ Auth::user()->email }}</p>
+                    </div>
+                    <div class="border-t border-gray-200">
+                        <form action="{{ route('logout') }}" method="POST">
+                            @csrf
+                            <button type="submit" class="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100">
+                                Log out
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            @else
+                <!-- If no user is authenticated, show nothing or show login/signup options -->
+                
+                
+            @endauth
+        </div>
     </div>
+
+    <!-- TailwindCSS and custom JS for dropdown -->
+    <script>
+        // Toggle the profile dropdown on click
+        document.getElementById('profileButton').addEventListener('click', function() {
+            let dropdown = document.getElementById('profileDropdown');
+            dropdown.classList.toggle('hidden');
+        });
+
+        // Close the dropdown if clicked outside
+        document.addEventListener('click', function(event) {
+            let dropdown = document.getElementById('profileDropdown');
+            let profileButton = document.getElementById('profileButton');
+            
+            if (!profileButton.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+    </script>
 </header>

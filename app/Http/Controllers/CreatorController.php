@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Creator;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
@@ -87,4 +88,38 @@ class CreatorController extends Controller
 
         return back()->withErrors(['otp' => 'Invalid or expired OTP']);
     }
+    
+    public function showLoginForm()
+    {
+        return view('creator_login');
+    }
+    
+    public function login(Request $request)
+    {
+        // Validate the request
+        $validated = $request->validate([
+            'email' => 'required|email',
+            'password' => 'required|string',
+        ]);
+
+        // Check if the email exists
+        $user = Creator::where('email', $validated['email'])->first();
+
+        // If user exists and password is correct, log in
+        if ($user && Hash::check($validated['password'], $user->password)) {
+            Auth::login($user);
+            $id = Crypt::encrypt($user->id);
+            return redirect()->route('content.create', ['id' => $id]); // Redirect to a dashboard or home page after login
+        }
+
+        // If login fails
+        return back()->withErrors(['email' => 'The provided credentials do not match our records.']);
+    }
+
+    public function logout()
+    {
+        Auth::logout();
+        return redirect()->route('login');
+    }
+
 }

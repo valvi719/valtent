@@ -16,6 +16,13 @@ Route::post('creator_form/', [CreatorController::class, 'submitForm'])->name('fo
 Route::get('verify-otp/{id}', [CreatorController::class, 'showOtpForm'])->name('verify.otp');
 Route::post('verify-otp/{id}', [CreatorController::class, 'verifyOtp'])->name('verify.otp');
 
+// Login Routes
+Route::get('login', [CreatorController::class, 'showLoginForm'])->name('login');
+Route::post('login', [CreatorController::class, 'login'])->name('login.submit');
+
+// Logout Route
+Route::post('logout', [CreatorController::class, 'logout'])->name('logout');
+
 
 //content
 Route::get('/content/create/{id}', [ContentController::class, 'create'])->name('content.create');

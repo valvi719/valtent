@@ -1,4 +1,5 @@
 <?php
+use App\Models\Creator;
 
 return [
 
@@ -38,7 +39,7 @@ return [
     'guards' => [
         'web' => [
             'driver' => 'session',
-            'provider' => 'users',
+            'provider' => 'creators',
         ],
     ],
 
@@ -60,9 +61,9 @@ return [
     */
 
     'providers' => [
-        'users' => [
+        'creators' => [
             'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', App\Models\User::class),
+            'model' => App\Models\Creator::class,
         ],
 
         // 'users' => [
