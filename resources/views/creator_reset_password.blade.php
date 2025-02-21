@@ -2,8 +2,8 @@
 <html lang="en">
 @extends('layouts.app')
 
-@section('title', 'Login')
- 
+@section('title', 'Reset Password')
+
 @section('content')
 <body class="bg-gray-100 p-8">
     <div class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-lg">
@@ -11,10 +11,12 @@
         <div class="text-center mb-6">
             <img src="{{ asset('images/valtent_logo.jpeg') }}" alt="App Logo" class="mx-auto h-16">
         </div>
-        <h2 class="text-2xl font-bold text-center text-green-600 mb-6">Login</h2>
+        <h2 class="text-2xl font-bold text-center text-green-600 mb-6">Reset Your Password</h2>
 
-        <form action="{{ route('login.submit') }}" method="POST">
+        <form action="{{ route('password.update') }}" method="POST">
             @csrf
+            <input type="hidden" name="token" value="{{ $token }}">
+
             <!-- Email -->
             <div class="mb-4">
                 <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
@@ -24,25 +26,23 @@
 
             <!-- Password -->
             <div class="mb-4">
-                <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                <label for="password" class="block text-sm font-medium text-gray-700">New Password</label>
                 <input type="password" id="password" name="password" class="mt-1 block w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-600" required>
                 @error('password') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
             </div>
 
+            <!-- Confirm Password -->
             <div class="mb-4">
-                <button type="submit" class="w-full bg-green-600 text-white p-3 rounded-md hover:bg-green-700 focus:outline-none">
-                    Log In
-                </button>
+                <label for="password_confirmation" class="block text-sm font-medium text-gray-700">Confirm New Password</label>
+                <input type="password" id="password_confirmation" name="password_confirmation" class="mt-1 block w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-600" required>
+                @error('password_confirmation') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
             </div>
 
-            <!-- Forgot Password Link -->
-            <div class="text-center mt-4">
-                <a href="{{ route('password.request') }}" class="text-sm text-blue-600 hover:text-blue-800">Forgot Password?</a>
-            </div>            
-
-            @error('email')
-                <div class="mt-4 text-center text-sm text-red-600">{{ $message }}</div>
-            @enderror
+            <div class="mb-4">
+                <button type="submit" class="w-full bg-green-600 text-white p-3 rounded-md hover:bg-green-700 focus:outline-none">
+                    Reset Password
+                </button>
+            </div>
         </form>
     </div>
 </body>

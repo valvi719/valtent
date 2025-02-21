@@ -23,6 +23,11 @@ Route::post('login', [CreatorController::class, 'login'])->name('login.submit');
 // Logout Route
 Route::post('logout', [CreatorController::class, 'logout'])->name('logout');
 
+// Forgot Password Routes
+Route::get('forgot-password', [CreatorController::class, 'showForgotPasswordForm'])->name('password.request');
+Route::post('forgot-password', [CreatorController::class, 'sendResetLink'])->name('password.email');
+Route::get('reset-password/{token}', [CreatorController::class, 'showResetPasswordForm'])->name('password.reset');
+Route::post('reset-password', [CreatorController::class, 'resetPassword'])->name('password.update');
 
 //content
 Route::get('/content/create/{id}', [ContentController::class, 'create'])->name('content.create');
