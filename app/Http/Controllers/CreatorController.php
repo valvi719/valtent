@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use App\Mail\OtpVerificationMail;
@@ -25,8 +27,7 @@ class CreatorController extends Controller
     // Handle Form Submission and Send OTP
     public function submitForm(Request $request)
     {
-        
-        // Validation
+        // Validate the form inputs
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'phone' => 'required|string|max:15',
@@ -34,7 +35,19 @@ class CreatorController extends Controller
             'password' => 'required|string|min:8|confirmed',
             'address' => 'required|string|max:255',
             'city' => 'required|string|max:255',
+            'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048', // Validate the profile photo
         ]);
+
+        // Handle file upload
+        $profilePhotoPath = null;
+        if ($request->hasFile('profile_photo') && $request->file('profile_photo')->isValid()) {
+            // Handle the file upload
+            $profilePhoto = $request->file('profile_photo');
+            $profilePhotoName = time() . '-' . $profilePhoto->getClientOriginalName();
+            
+            // Store the photo in 'public/profile_photos' and get the file path
+            $profilePhotoPath = $profilePhoto->storeAs('public/profile_photos', $profilePhotoName);
+        }
 
         // Create the user
         $user = Creator::create([
@@ -44,6 +57,7 @@ class CreatorController extends Controller
             'password' => Hash::make($validated['password']),
             'address' => $validated['address'],
             'city' => $validated['city'],
+            'profile_photo' => basename($profilePhotoPath),  // Save only the file name (basename) to the database
         ]);
 
         // Generate OTP

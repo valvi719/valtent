@@ -24,6 +24,7 @@ class Creator extends Authenticatable
         'password',
         'address',
         'city',
+        'profile_photo',
     ];
 
     // Hidden fields for serialization (e.g., password should not be exposed in responses)

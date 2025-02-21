@@ -11,7 +11,7 @@
         </div>
         <h2 class="text-2xl font-bold text-center text-green-600 mb-6">Sign Up</h2>
 
-        <form action="{{ route('form.submit') }}" method="POST">
+        <form action="{{ route('form.submit') }}" method="POST" enctype="multipart/form-data">
             @csrf
             <div class="mb-4">
                 <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
@@ -32,6 +32,12 @@
             </div>
 
             <div class="mb-4">
+                <label for="profile_photo" class="block text-sm font-medium text-gray-700">Profile Photo</label>
+                <input type="file" id="profile_photo" name="profile_photo" accept="image/*" class="mt-1 block w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-600">
+                @error('profile_photo') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+            </div>
+
+             <div class="mb-4">
                 <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
                 <input type="password" id="password" name="password" class="mt-1 block w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-600" required>
                 @error('password') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror

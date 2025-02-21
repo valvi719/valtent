@@ -22,38 +22,40 @@
 
         <!-- Profile and Logout Dropdown -->
         <div class="relative">
-            <!-- Profile Icon -->
+            <!-- Conditionally display profile icon only if authenticated and not on registration or OTP pages -->
             @auth
-                <button id="profileButton" class="w-10 h-10 rounded-full overflow-hidden border-2 border-white">
-                    <!-- Display user's profile image or initials -->
-                    @if(Auth::user()->profile_picture_url)
-                        <img src="{{ Auth::user()->profile_picture_url }}" alt="Profile" class="w-full h-full object-cover">
-                    @else
-                        <span class="flex justify-center items-center w-full h-full text-white text-lg">
-                            {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
-                        </span>
-                    @endif
-                </button>
+                @if (!in_array(Route::currentRouteName(), ['show.form','verify.otp','login','password.request','password.reset']))
+                    <button id="profileButton" class="w-10 h-10 rounded-full overflow-hidden border-2 border-white">
+                        <!-- Display user's profile image or initials -->
+                        @if(Auth::user()->profile_photo)
+                            <!-- Display Profile Image -->
+                            <img src="{{ asset('storage/public/profile_photos/' . Auth::user()->profile_photo) }}" alt="Profile" class="w-full h-full object-cover">
+                        @else
+                            <!-- Display Initials if no Profile Image -->
+                            <span class="flex justify-center items-center w-full h-full text-white text-lg">
+                                {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
+                            </span>
+                        @endif
+                    </button>
 
-                <!-- Dropdown Menu -->
-                <div id="profileDropdown" class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg hidden">
-                    <div class="p-2">
-                        <p class="text-gray-700 font-semibold">{{ Auth::user()->name }}</p>
-                        <p class="text-gray-500 text-sm">{{ Auth::user()->email }}</p>
+                    <!-- Dropdown Menu -->
+                    <div id="profileDropdown" class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg hidden">
+                        <div class="p-2">
+                            <p class="text-gray-700 font-semibold">{{ Auth::user()->name }}</p>
+                            <p class="text-gray-500 text-sm">{{ Auth::user()->email }}</p>
+                        </div>
+                        <div class="border-t border-gray-200">
+                            <form action="{{ route('logout') }}" method="POST">
+                                @csrf
+                                <button type="submit" class="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100">
+                                    Log out
+                                </button>
+                            </form>
+                        </div>
                     </div>
-                    <div class="border-t border-gray-200">
-                        <form action="{{ route('logout') }}" method="POST">
-                            @csrf
-                            <button type="submit" class="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100">
-                                Log out
-                            </button>
-                        </form>
-                    </div>
-                </div>
+                @endif
             @else
                 <!-- If no user is authenticated, show nothing or show login/signup options -->
-                
-                
             @endauth
         </div>
     </div>
