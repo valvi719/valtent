@@ -32,3 +32,6 @@ Route::post('reset-password', [CreatorController::class, 'resetPassword'])->name
 //content
 Route::get('/content/create/{id}', [ContentController::class, 'create'])->name('content.create');
 Route::post('/content/store/{id}', [ContentController::class, 'store'])->name('content.store');
+
+// Route for viewing content
+Route::get('/creator/{id}/content', [ContentController::class, 'index'])->name('creator.content');

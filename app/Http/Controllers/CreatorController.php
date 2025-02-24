@@ -127,13 +127,13 @@ class CreatorController extends Controller
         if ($user && Hash::check($validated['password'], $user->password)) {
             Auth::login($user);
             $id = Crypt::encrypt($user->id);
-            return redirect()->route('content.create', ['id' => $id]); // Redirect to a dashboard or home page after login
+            // Redirect to the creator's content page using the encrypted ID
+            return redirect()->route('creator.content', ['id' => $id]); // Redirect to the content route
         }
 
         // If login fails
         return back()->withErrors(['email' => 'The provided credentials do not match our records.']);
     }
-
     public function logout()
     {
         Auth::logout();

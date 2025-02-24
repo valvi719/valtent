@@ -66,14 +66,13 @@
                 </div>
             </form>
         </div>
-        <!-- Add Button in Top-Left Corner -->
-        <div class="absolute top-28 centre-2">
-                <a href="#" class="inline-block bg-green-600 text-white py-2 px-6 rounded-full hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
-                    Add
-                </a>
-        </div>
     </div>
-    
+    <!-- Add Content Button with + Sign -->
+    <div class="fixed bottom-10 right-10">
+        <a href="{{ route('creator.content', ['id' => Crypt::encrypt(Auth::user()->id)]) }}" class="bg-green-600 text-white p-4 rounded-full text-2xl shadow-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+            Contents
+        </a>
+    </div>
     <script>
         // JavaScript to show the "Value" field when "Media" type is selected
         document.getElementById('type').addEventListener('change', function() {

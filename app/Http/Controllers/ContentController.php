@@ -80,4 +80,12 @@ class ContentController extends Controller
 
         return redirect()->route('content.create',['id' => $id])->with('success', 'Content created successfully!');
     }
+    public function index($id)
+    {
+        // Fetch content associated with the creator (creator id is decrypted)
+        $creatorId = Crypt::decrypt($id);
+        $contents = Content::where('cre_id', $creatorId)->get(); // Fetch content related to the creator
+
+        return view('creator_content', compact('contents', 'creatorId'));
+    }
 }
