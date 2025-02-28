@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable; 
+use App\Models\ContentLike;
 
 class Creator extends Authenticatable
 {
@@ -37,6 +38,8 @@ class Creator extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    
 
     // Optionally, add any relationships or custom methods here
 }

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\ContentLike;
 
 class Content extends Model
 {
@@ -21,4 +22,17 @@ class Content extends Model
             'cre_id' => 'nullable|integer',
         ]);
     }
+
+    // Relationship with ContentLike (A content can have many likes)
+    public function likes()
+    {
+        return $this->hasMany(ContentLike::class, 'con_id');
+    }
+
+    // Relationship with Creator (Each content belongs to one creator)
+    public function creator()
+    {
+        return $this->belongsTo(Creator::class, 'cre_id');
+    }
+    
 }

@@ -6,7 +6,9 @@ use App\Models\Content;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Auth;
 use FFMpeg\FFMpeg;
+use App\Models\ContentLike;
 
 class ContentController extends Controller
 {
@@ -87,5 +89,51 @@ class ContentController extends Controller
         $contents = Content::where('cre_id', $creatorId)->get(); // Fetch content related to the creator
 
         return view('creator_content', compact('contents', 'creatorId'));
+    }
+    public function showall()
+    {  
+        // dd('rr');
+        $contents = Content::with('creator')->latest()->get();
+        $likedContents = ContentLike::where('liked_by', Auth::id())->pluck('con_id')->toArray();
+        // dd($contents);
+        return view('home_contents', compact('contents','likedContents'));
+    }
+
+    public function toggleLike($contentId)
+    {
+        
+        try {
+            
+            $content = Content::findOrFail($contentId);
+            $creatorId = Auth::id(); // Get the logged-in user's ID
+            // dd('rr');
+            // Check if the user has already liked the content
+            $existingLike = ContentLike::where('con_id', $contentId)
+                                    ->where('liked_by', $creatorId)
+                                    ->first();
+
+            if ($existingLike) {
+                // If like exists, delete the like (unlike)
+                $existingLike->delete();
+                $message = 'unliked';
+            } else {
+                // Otherwise, create a new like
+                ContentLike::create([
+                    'con_id' => $contentId,
+                    'liked_by' => $creatorId,
+                    'name' => 'Like',
+                ]);
+                $message = 'liked';
+            }
+
+            // Return the response (we can also return the updated like count here)
+            return response()->json([
+                'message' => $message,
+                'like_count' => $content->likes()->count(), // Return the total like count
+            ]);
+        } catch (\Exception $e) {
+            // If an error occurs, return an error message
+            return response()->json(['error' => 'Something went wrong. Please try again.'], 500);
+        }
     }
 }

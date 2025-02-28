@@ -3,10 +3,11 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CreatorController;
 use App\Http\Controllers\ContentController;
+use App\Http\Controllers\LikeController;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// Route::get('/', function () {
+//     return view('welcome');
+// });
 
 //creator 
 Route::get('creator_landing/', [CreatorController::class, 'showForm'])->name('show.form');
@@ -32,6 +33,8 @@ Route::post('reset-password', [CreatorController::class, 'resetPassword'])->name
 //content
 Route::get('/content/create/{id}', [ContentController::class, 'create'])->name('content.create');
 Route::post('/content/store/{id}', [ContentController::class, 'store'])->name('content.store');
+Route::get('/', [ContentController::class, 'showall'])->name('content.showall');
+Route::post('content/{content}/like', [ContentController::class, 'toggleLike'])->name('like.toggle');
 
 // Route for viewing content
 Route::get('/creator/{id}/content', [ContentController::class, 'index'])->name('creator.content');
