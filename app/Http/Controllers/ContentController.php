@@ -106,17 +106,23 @@ class ContentController extends Controller
             
             $content = Content::findOrFail($contentId);
             $creatorId = Auth::id(); // Get the logged-in user's ID
-            // dd('rr');
+            if($creatorId==null)
+            {
+                return redirect()->route('login'); 
+            }
+            // dd($creatorId);
             // Check if the user has already liked the content
             $existingLike = ContentLike::where('con_id', $contentId)
                                     ->where('liked_by', $creatorId)
                                     ->first();
-
+                                   
             if ($existingLike) {
                 // If like exists, delete the like (unlike)
                 $existingLike->delete();
                 $message = 'unliked';
+                
             } else {
+                // dd('rr');
                 // Otherwise, create a new like
                 ContentLike::create([
                     'con_id' => $contentId,
@@ -124,8 +130,9 @@ class ContentController extends Controller
                     'name' => 'Like',
                 ]);
                 $message = 'liked';
+                 
             }
-
+            
             // Return the response (we can also return the updated like count here)
             return response()->json([
                 'message' => $message,

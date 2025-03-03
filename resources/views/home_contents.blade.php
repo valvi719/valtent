@@ -11,33 +11,37 @@
         <p class="text-center text-gray-600">No content available. Please follow some creators!</p>
     @else
         @foreach($contents as $content)
-            <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-6">
-                <!-- Content Header -->
+            <!-- Card container: Aspect ratio 1:1 -->
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-6 w-full sm:w-11/12 md:w-10/12 lg:w-8/12 xl:w-6/12 mx-auto">
+                <!-- Content Header: User's Profile and post time -->
                 <div class="flex items-center p-4 border-b">
-                    <img src="{{ asset('storage/public/profile_photos/' . $content->creator->profile_photo) }}" alt="User Avatar" class="w-10 h-10 rounded-full mr-3">
-                    <div class="flex flex-col">
-                        <a href="#" class="font-semibold">{{ $content->name }}</a>
+                    <!-- Profile Image -->
+                    <img src="{{ asset('storage/public/profile_photos/' . $content->creator->profile_photo) }}" alt="User Avatar" class="w-12 h-12 rounded-full mr-3">
+                    <div class="flex flex-col flex-grow">
+                        <a href="#" class="font-semibold text-lg">{{ $content->name }}</a>
                         <p class="text-gray-500 text-sm">{{ $content->created_at->diffForHumans() }}</p>
                     </div>
                 </div>
 
-                <div class="relative">
+                <!-- Media Content (Image or Video) with Aspect Ratio 1:1 -->
+                <div class="relative w-full" style="padding-top: 100%;"> <!-- 1:1 aspect ratio -->
                     @if($content->type == 'Media')
                         @if(str_contains($content->value, '.mp4'))
-                            <video class="w-full object-cover" controls>
+                            <video class="absolute top-0 left-0 w-full h-full object-cover" controls>
                                 <source src="{{ asset('storage/' . $content->value) }}" type="video/mp4">
                                 Your browser does not support the video tag.
                             </video>
                         @else
-                            <img class="w-full object-cover" src="{{ asset('storage/' . $content->value) }}" alt="{{ $content->name }}">
+                            <img class="absolute top-0 left-0 w-full h-full object-cover" src="{{ asset('storage/' . $content->value) }}" alt="{{ $content->name }}">
                         @endif
                     @else
-                        <div class="w-full h-64 bg-gray-300 flex items-center justify-center">
+                        <div class="w-full h-full bg-gray-300 flex items-center justify-center">
                             <span class="text-white">NFT</span>
                         </div>
                     @endif
                 </div>
 
+                <!-- Content Footer: Like Button, Post Description -->
                 <div class="p-4">
                     <div class="flex justify-between items-center mb-4">
                         <div class="flex space-x-4">
@@ -51,6 +55,7 @@
                         </div>
                     </div>
 
+                    <!-- Post Description -->
                     <p class="text-gray-700 mt-2">
                         <span class="font-semibold">{{ $content->name }}</span> {{ $content->name }}
                     </p>
