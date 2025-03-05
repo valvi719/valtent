@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CreatorController;
 use App\Http\Controllers\ContentController;
 use App\Http\Controllers\LikeController;
+use App\Http\Controllers\RazorpayController;
 
 // Route::get('/', function () {
 //     return view('welcome');
@@ -38,3 +39,8 @@ Route::post('content/{content}/like', [ContentController::class, 'toggleLike'])-
 
 // Route for viewing content
 Route::get('/creator/{id}/content', [ContentController::class, 'index'])->name('creator.content');
+
+//Razorpay 
+Route::get('payment-form', [RazorpayController::class, 'showPaymentForm']);
+Route::post('create-order', [RazorpayController::class, 'createOrder']);
+Route::post('payment-success', [RazorpayController::class, 'paymentSuccess']);
