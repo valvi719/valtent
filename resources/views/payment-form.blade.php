@@ -10,8 +10,8 @@
 
     <form action="{{ url('payment-success') }}" method="POST" id="payment-form">
         @csrf
-        <input type="hidden" name="order_id" id="order_id">
-        <input type="hidden" name="payment_id" id="payment_id">
+        <input type="hidden" name="razorpay_order_id " id="razorpay_order_id ">
+        <input type="hidden" name="razorpay_payment_id" id="razorpay_payment_id">
         <input type="hidden" name="razorpay_signature" id="razorpay_signature">
         <div id="payment-button" class="mb-4">
             <button type="button" id="pay-button" class="payment-btn">Pay with Razorpay</button>
@@ -32,15 +32,16 @@
                 .then(data => {
                 if (data.orderId) {
                     var options = {
-                        "key": "{{ env('RAZORPAY_KEY') }}",  // Razorpay Key
+                        "key": "{{ env('RAZORPAY_KEY_ID') }}",  // Razorpay Key
                         "amount": 100 * 100, // Amount in paise
                         "currency": "INR",
                         "order_id": data.orderId, // Order ID returned from backend
                         "handler": function (response) {
+                            console.log(response);
                             var form = document.getElementById('payment-form');
-                            form.order_id.value = data.orderId; // Set the order_id
-                            form.payment_id.value = response.razorpay_payment_id; // Razorpay payment ID
-                            form.signature.value = response.razorpay_signature; // Razorpay signature
+                            form.razorpay_order_id .value = data.orderId; // Set the order_id
+                            form.razorpay_payment_id.value = response.razorpay_payment_id; // Razorpay payment ID
+                            form.razorpay_signature.value = response.razorpay_signature; // Razorpay signature
                             form.submit();  // Submit the form to backend
                         },
                     };

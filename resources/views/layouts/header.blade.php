@@ -5,6 +5,7 @@
     <link rel="icon" href="{{ asset('images/valtent_logo.jpeg') }}" type="image/x-icon">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     
     <div class="max-w-7xl mx-auto px-4 flex justify-between items-center">
         <!-- Logo -->

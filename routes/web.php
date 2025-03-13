@@ -10,6 +10,11 @@ use App\Http\Controllers\RazorpayController;
 //     return view('welcome');
 // });
 
+// Login Routes
+Route::get('login', [CreatorController::class, 'showLoginForm'])->name('login');
+Route::post('login', [CreatorController::class, 'login'])->name('login.submit');
+
+Route::middleware('auth')->group(function () {
 //creator 
 Route::get('creator_landing/', [CreatorController::class, 'showForm'])->name('show.form');
 Route::post('creator_form/', [CreatorController::class, 'submitForm'])->name('form.submit');
@@ -17,10 +22,6 @@ Route::post('creator_form/', [CreatorController::class, 'submitForm'])->name('fo
 // OTP Verification Routes
 Route::get('verify-otp/{id}', [CreatorController::class, 'showOtpForm'])->name('verify.otp');
 Route::post('verify-otp/{id}', [CreatorController::class, 'verifyOtp'])->name('verify.otp');
-
-// Login Routes
-Route::get('login', [CreatorController::class, 'showLoginForm'])->name('login');
-Route::post('login', [CreatorController::class, 'login'])->name('login.submit');
 
 // Logout Route
 Route::post('logout', [CreatorController::class, 'logout'])->name('logout');
@@ -41,6 +42,11 @@ Route::post('content/{content}/like', [ContentController::class, 'toggleLike'])-
 Route::get('/creator/{id}/content', [ContentController::class, 'index'])->name('creator.content');
 
 //Razorpay 
-Route::get('payment-form', [RazorpayController::class, 'showPaymentForm']);
-Route::post('create-order', [RazorpayController::class, 'createOrder']);
-Route::post('payment-success', [RazorpayController::class, 'paymentSuccess']);
+ Route::get('payment-form', [RazorpayController::class, 'showPaymentForm']);
+ Route::post('create-order', [RazorpayController::class, 'createOrder']);
+ Route::post('payment-success', [RazorpayController::class, 'paymentSuccess']);
+ Route::get('wallet', [RazorpayController::class, 'showwallet'])->name('wallet.show');
+ Route::post('/create-razorpay-order', [RazorpayController::class, 'createRazorpayOrder']);
+ Route::post('/process-razorpay-payment', [RazorpayController::class, 'processRazorpayPayment']);
+});
+
