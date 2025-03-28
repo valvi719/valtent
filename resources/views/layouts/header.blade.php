@@ -19,7 +19,7 @@
             <ul class="flex space-x-6">
                 <li><a href="/" class="hover:text-green-200">Home</a></li>
                 <li><a href="/wallet" class="hover:text-green-200">Wallet</a></li>
-                <li><a href="#services" class="hover:text-green-200">Services</a></li>
+                <li><a href="{{ route('content.create', ['id' => Crypt::encrypt(Auth::id())]) }}" class="hover:text-green-200">Create</a></li>
                 <li><a href="#contact" class="hover:text-green-200">Contact</a></li>
             </ul>
         </nav>

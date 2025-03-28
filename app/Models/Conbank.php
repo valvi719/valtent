@@ -28,6 +28,7 @@ class Conbank extends Model
         'interests',
         'created_at',
         'updated_at',
+        'last_interest_applied',
     ];
 
     // Define any relationships (if needed)
