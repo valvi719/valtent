@@ -2,10 +2,14 @@
 
 namespace App\Http\Controllers;
 
+
 use Illuminate\Http\Request;
 use App\Models\Conbank;
+use App\Models\Creator;
 use Razorpay\Api\Api;
 use App\Services\RazorpayService;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 
 class RazorpayController extends Controller
 {
@@ -75,11 +79,20 @@ class RazorpayController extends Controller
     public function showwallet()
     {
         $userCreId = auth()->id();
-        // Fetch the wallet using the cre_id (user ID)
         $wallet = Conbank::where('cre_id', $userCreId)->first();
-        return view('wallet', ['wallet' => $wallet], [
+        if (!$wallet) {
+            $wallet = new Conbank;
+            $wallet->cre_id = $userCreId;
+            $wallet->balance = 0;
+            $wallet->deposits = 0; 
+            $wallet->withdrawals = 0;
+            $wallet->loans = 0;
+            $wallet->interests = 0;
+            $wallet->save();
+        }
+         return view('wallet', ['wallet' => $wallet], [
             'razorpayKey' => env('RAZORPAY_KEY_ID'),
-        ] ); 
+        ] );
     }
     // Function to create Razorpay order
     public function createRazorpayOrder(Request $request)
@@ -91,6 +104,7 @@ class RazorpayController extends Controller
         $conbank = Conbank::where('cre_id', auth()->user()->id)->first();
 
         if (!$conbank) {
+            
             return response()->json(['error' => 'Wallet not found!'], 404);
         }
 
@@ -128,12 +142,12 @@ class RazorpayController extends Controller
         $type = $request->input('type');
         $amount = $request->input('amount');
         
-
+        
         // Razorpay API credentials
         $key = env('RAZORPAY_KEY_ID');
         $secret = env('RAZORPAY_KEY_SECRET');
         $api = new Api($key, $secret);
-
+        
         try {
              // Verify the payment signature
             $api->utility->verifyPaymentSignature([
@@ -141,10 +155,10 @@ class RazorpayController extends Controller
                 'razorpay_payment_id' => $paymentId,
                 'razorpay_signature' => $signature,
             ]);
-
+            
             // Update the wallet balance after the payment
             $conbank = Conbank::where('cre_id', auth()->user()->id)->first();
-
+            
             if (!$conbank) {
                 return response()->json(['error' => 'Wallet not found!'], 404);
             }
@@ -165,5 +179,99 @@ class RazorpayController extends Controller
         } catch (\Exception $e) {
             return response()->json(['error' => 'Payment verification failed: ' . $e->getMessage()], 500);
         }
+    }
+
+    public function transferFunds(Request $request)
+    {
+        
+
+        // Using Http Client
+        // $request->validate([
+        //         'amount' => 'required|numeric|min:1',
+        //     ]);
+
+        // $apiUrl = 'https://api.razorpay.com/v1/payouts';
+
+        // $creator = Creator::where('id', Auth::id())->first();
+        
+        // // Payout data (example payload)
+        // $payoutData = [
+        //     'account_number' => trim($creator->account_number), // Your RazorpayX account number
+        //     'ifsc_code' => $creator->ifsc_code,
+        //     'fund_account_id' => null,
+        //     'amount' => $request->amount * 100, // Amount in paise (e.g., 100.00 INR = 10000 paise)
+        //     'currency' => 'INR',
+        //     'mode' => 'IMPS', // Options: IMPS, NEFT, RTGS, UPI, etc.
+        //     'purpose' => 'payout',
+        //     'reference_id' => 'your_unique_reference_id_' . time(),
+        //     // 'notes' => ['transfer_notes' => 'IMPS Transfer'],
+        //     'queue_if_low_balance' => true,
+        //     // 'reference_id' => 'payout_' . uniqid(), // Unique reference ID
+        //     'narration' => 'Test Payout from Laravel',
+        //     'contact' => $creator->phone,
+        //     'email' => $creator->email,
+        // ];
+
+        // try {
+        //     // Make the API request using Laravel's HTTP client
+        //     $response = Http::withBasicAuth(env('RAZORPAY_KEY_ID'), env('RAZORPAY_KEY_SECRET'))->withHeaders(['X-Idempotency-Key' => uniqid()])->post($apiUrl, $payoutData);
+
+        //     // Check if the request was successful
+        //     if ($response->successful()) {
+        //         $payout = $response->json();
+        //         return response()->json([
+        //             'status' => 'success',
+        //             'payout_id' => $payout['id'],
+        //             'amount' => $payout['amount'] / 100, // Convert paise to INR
+        //             'message' => 'Payout created successfully',
+        //         ]);
+        //     } else {
+        //         return response()->json([
+        //             'status' => 'error',
+        //             'message' => 'Failed to create payout',
+        //             'error' => $response->json(),
+        //         ], $response->status());
+        //     }
+        // } catch (\Exception $e) {
+        //     // Handle any exceptions (e.g., network errors)
+        //     return response()->json([
+        //         'status' => 'error',
+        //         'message' => 'An error occurred: ' . $e->getMessage(),
+        //     ], 500);
+        // }
+
+        //Using Payout class 
+        // // Validate the input
+        // $request->validate([
+        //     'amount' => 'required|numeric|min:1',
+        // ]);
+        // $creator = Creator::where('id', Auth::id())->first();
+        // // Razorpay Payout API credentials
+        // $api = new Api(env('RAZORPAY_KEY_ID'), env('RAZORPAY_KEY_SECRET'));
+
+        // $payout_data = [
+        //         'account_number' => $creator->account_number,
+        //         'ifsc_code' => $creator->ifsc_code,
+        //         'amount' => $request->amount * 100, // Amount in paise
+        //         'currency' => 'INR',
+        //         'purpose' => 'transfer', // For transfer purpose
+        //         'notes' => ['transfer_notes' => 'IMPS Transfer'],
+        //         'queue_if_low_balance' => true
+        // ];
+        
+        // try {
+            
+        //     // Create a payout transfer
+        //     $payout = $api->payout->create($payout_data);
+        //     // dd($payout);
+        //     // Check if the payout was successful
+        //     if (isset($payout->id)) {
+        //         return response()->json(['success' => 'Transfer initiated successfully!']);
+        //     } else {
+        //         return response()->json(['error' => 'Failed to initiate the transfer.'], 500);
+        //     }
+        // } catch (\Exception $e) {
+        //     return response()->json(['error' => $e->getMessage()], 500);
+        // }
     }
 }

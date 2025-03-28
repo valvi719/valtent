@@ -30,6 +30,18 @@
                 <input type="email" id="email" name="email" class="mt-1 block w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-600" required>
                 @error('email') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
             </div>
+             
+            <div class="mb-4">
+                <label for="account_number" class="block text-sm font-medium text-gray-700">Account Number</label>
+                <input type="text" id="account_number" name="account_number" class="mt-1 block w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-600" required>
+                @error('account_number') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+            </div>
+
+            <div class="mb-4">
+                <label for="ifsc_code" class="block text-sm font-medium text-gray-700">IFSC Code</label>
+                <input type="text" id="ifsc_code" name="ifsc_code" class="mt-1 block w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-600" required>
+                @error('ifsc_code') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+            </div>
 
             <div class="mb-4">
                 <label for="profile_photo" class="block text-sm font-medium text-gray-700">Profile Photo</label>

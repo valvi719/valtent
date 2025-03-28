@@ -19,6 +19,8 @@ class Creator extends Authenticatable
         'name',
         'phone',
         'email',
+        'account_number',
+        'ifsc_code',
         'otp',
         'otp_expires_at',
         'email_verified_at',

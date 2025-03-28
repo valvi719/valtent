@@ -31,6 +31,8 @@ class CreatorController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'phone' => 'required|string|max:15',
+            'account_number' => 'required|string|max:50',
+            'ifsc_code' => 'required|string|max:20',
             'email' => 'required|email|unique:creators,email',
             'password' => 'required|string|min:8|confirmed',
             'address' => 'required|string|max:255',
@@ -54,6 +56,8 @@ class CreatorController extends Controller
             'name' => $validated['name'],
             'phone' => $validated['phone'],
             'email' => $validated['email'],
+            'account_number' => $validated['account_number'],
+            'ifsc_code' => $validated['ifsc_code'],
             'password' => Hash::make($validated['password']),
             'address' => $validated['address'],
             'city' => $validated['city'],

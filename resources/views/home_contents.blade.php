@@ -21,8 +21,9 @@
                         <a href="#" class="font-semibold text-lg">{{ $content->name }}</a>
                         <p class="text-gray-500 text-sm">{{ $content->created_at->diffForHumans() }}</p>
                     </div>
+                    
                 </div>
-
+            
                 <!-- Media Content (Image or Video) with Aspect Ratio 1:1 -->
                 <div class="relative w-full" style="padding-top: 100%;"> <!-- 1:1 aspect ratio -->
                     @if($content->type == 'Media')
@@ -50,9 +51,19 @@
                                 <span class="like-text text-{{ in_array($content->id, $likedContents) ? 'green' : 'gray' }}-500">
                                     {{ in_array($content->id, $likedContents) ? '♥' : '♡' }}
                                 </span>
-                                <span class="like-count">{{ $content->likes()->count() }}</span> Likes
+                                <span class="like-count">
+                                    @if($content->likes()->count() > 1)
+                                        {{ $content->likes()->count() }} Likes
+                                    @elseif($content->likes()->count() == 1)
+                                        1 Like
+                                    @endif
+                                </span>
                             </button>
+                            @if (Auth::id() == $content->cre_id && $content->likes()->count() > 1)
+                                <button class="extract-link" data-content-id="{{ $content->id }}">Extract</button>
+                            @endif
                         </div>
+                        
                     </div>
 
                     <!-- Post Description -->
@@ -64,9 +75,8 @@
         @endforeach
     @endif
 </div>
-
-<!-- AJAX script to handle like/unlike -->
 <script>
+    // AJAX script to handle like/unlike
     document.querySelectorAll('.like-btn').forEach(button => {
         button.addEventListener('click', function() {
             let contentId = this.getAttribute('data-content-id');
@@ -91,11 +101,72 @@
                     likeText.textContent = '♡';  // Change icon to unliked
                     likeText.classList.replace('text-green-500', 'text-gray-500');  // Change color to gray
                 }
-                likeCount.textContent = data.like_count;  // Update like count
+                 // Update the like count based on the response
+                if (data.like_count === 0) {
+                    likeCount.textContent = '';  // Hide the like count if it's 0
+                } else if (data.like_count === 1) {
+                    likeCount.textContent = '1 Like';  // Show "1 Like" when count is 1
+                } else {
+                    likeCount.textContent = `${data.like_count} Likes`;  // Show the count with "Likes" if greater than 1
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    });
+
+    // Extract button click handler
+    document.querySelectorAll('.extract-link').forEach(button => {
+        button.addEventListener('click', function() {
+            let contentId = this.getAttribute('data-content-id');
+            
+            // Send AJAX request to the "extract" route
+            fetch(`/content/${contentId}/extract`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                },
+                body: JSON.stringify({}),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Find the like-count element within the same card/container as the extract button
+                    let likeCountElement = this.closest('.bg-white').querySelector('.like-count');
+                    let likeText = this.closest('.bg-white').querySelector('.like-text');
+                    if (likeCountElement) {
+                        likeCountElement.textContent = '0'; // Set like count to 0
+                        likeText.textContent = '♡';
+                    }
+
+                    // Optionally, hide the "Extract" button
+                    this.style.display = 'none';  // Hide the extract button
+                }
             })
             .catch(error => console.error('Error:', error));
         });
     });
 </script>
+<style>
+        /* CSS to style the link as a button */
+        .extract-link {
+            display: inline-block;        /* Make it behave like a button */
+            padding: 10px 20px;           /* Add padding to make it button-like */
+            color: white;                 /* White text color */
+            background-color: green;      /* Green background */
+            text-decoration: none;        /* Remove underline */
+            border-radius: 5px;           /* Rounded corners */
+            font-weight: bold;            /* Make the text bold */
+            text-align: center;           /* Center the text inside the button */
+            font-size: 14px;              /* Set font size */
+            cursor: pointer;             /* Change cursor to pointer on hover */
+            transition: background-color 0.3s ease, transform 0.2s; /* Smooth transition for hover effect */
+        }
 
+        /* Optional: Hover effect for the button */
+        .extract-link:hover {
+            background-color: darkgreen;  /* Darker green on hover */
+            transform: scale(1.05);        /* Slightly enlarge the button on hover */
+        }
+</style>
 @endsection

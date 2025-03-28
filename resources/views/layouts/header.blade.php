@@ -6,7 +6,8 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-    
+    <link rel="stylesheet" href="{{ asset('css/wallet.css') }}">
+
     <div class="max-w-7xl mx-auto px-4 flex justify-between items-center">
         <!-- Logo -->
         <a href="/" class="text-3xl font-bold">
@@ -17,7 +18,7 @@
         <nav>
             <ul class="flex space-x-6">
                 <li><a href="/" class="hover:text-green-200">Home</a></li>
-                <li><a href="#about" class="hover:text-green-200">About</a></li>
+                <li><a href="/wallet" class="hover:text-green-200">Wallet</a></li>
                 <li><a href="#services" class="hover:text-green-200">Services</a></li>
                 <li><a href="#contact" class="hover:text-green-200">Contact</a></li>
             </ul>

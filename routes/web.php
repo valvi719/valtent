@@ -37,9 +37,12 @@ Route::get('/content/create/{id}', [ContentController::class, 'create'])->name('
 Route::post('/content/store/{id}', [ContentController::class, 'store'])->name('content.store');
 Route::get('/', [ContentController::class, 'showall'])->name('content.showall');
 Route::post('content/{content}/like', [ContentController::class, 'toggleLike'])->name('like.toggle');
+Route::post('/content/{contentId}/extract', [ContentController::class, 'extract'])->name('content.extract');
+
 
 // Route for viewing content
 Route::get('/creator/{id}/content', [ContentController::class, 'index'])->name('creator.content');
+Route::get('/modalcontent/{content_id}', [ContentController::class, 'modalContent'])->name('modalcontent');
 
 //Razorpay 
  Route::get('payment-form', [RazorpayController::class, 'showPaymentForm']);
@@ -48,5 +51,6 @@ Route::get('/creator/{id}/content', [ContentController::class, 'index'])->name('
  Route::get('wallet', [RazorpayController::class, 'showwallet'])->name('wallet.show');
  Route::post('/create-razorpay-order', [RazorpayController::class, 'createRazorpayOrder']);
  Route::post('/process-razorpay-payment', [RazorpayController::class, 'processRazorpayPayment']);
+ Route::post('/transfer-funds', [RazorpayController::class, 'transferFunds']);
 });
 

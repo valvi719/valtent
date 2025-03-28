@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Content;
+use App\Models\Conbank;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use FFMpeg\FFMpeg;
 use App\Models\ContentLike;
 
@@ -90,6 +92,20 @@ class ContentController extends Controller
 
         return view('creator_content', compact('contents', 'creatorId'));
     }
+    public function modalContent($content_id)
+    {
+        $content = Content::findOrFail($content_id);
+
+        // Prepare response data (could include other data as needed)
+        return response()->json([
+            'id' => $content->id,
+            'name' => $content->name,
+            'value' => $content->value,
+            'type' => $content->type,
+            'url' => asset('storage/' . $content->value),  // Assuming media file is stored in the storage folder
+        ]);
+        
+    }
     public function showall()
     {  
         // dd('rr');
@@ -105,6 +121,7 @@ class ContentController extends Controller
         try {
             
             $content = Content::findOrFail($contentId);
+            $conbank = Conbank::where('cre_id', auth()->user()->id)->first();
             $creatorId = Auth::id(); // Get the logged-in user's ID
             if($creatorId==null)
             {
@@ -120,9 +137,9 @@ class ContentController extends Controller
                 // If like exists, delete the like (unlike)
                 $existingLike->delete();
                 $message = 'unliked';
-                
+                $conbank->balance +=  1;
             } else {
-                // dd('rr');
+                // dd('rr');    
                 // Otherwise, create a new like
                 ContentLike::create([
                     'con_id' => $contentId,
@@ -130,9 +147,10 @@ class ContentController extends Controller
                     'name' => 'Like',
                 ]);
                 $message = 'liked';
-                 
+                
+                $conbank->balance -=  1;
             }
-            
+            $conbank->save();
             // Return the response (we can also return the updated like count here)
             return response()->json([
                 'message' => $message,
@@ -142,5 +160,16 @@ class ContentController extends Controller
             // If an error occurs, return an error message
             return response()->json(['error' => 'Something went wrong. Please try again.'], 500);
         }
+    }
+
+    public function extract($contentId)
+    {
+        $authUserId = Auth::id();
+        $creId = $authUserId; 
+        $likeCount = DB::table('content_like')->where('con_id', $contentId)->count();
+        DB::table('conbank')->where('cre_id', $creId)->increment('balance', $likeCount);
+        DB::table('content_like')->where('con_id', $contentId)->delete();
+        
+        return response()->json(['success' => true]);
     }
 }
