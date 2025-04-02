@@ -1,6 +1,11 @@
-let balance = 0; // Starting balance (could be fetched from the database)
-    var razorpayKey = "{{ $razorpayKey }}";
+    
+    let balance = 0; // Starting balance (could be fetched from the database)
+    var razorpayKey = window.razorpayKey || "";
+    var name = window.name || "";
+    var email = window.email || "";
+    var contact = window.contact || "";
     var csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    
     // Function to show deposit input
     function showDepositBox() {
       document.getElementById('deposit-box').style.display = 'block';
@@ -59,6 +64,7 @@ let balance = 0; // Starting balance (could be fetched from the database)
     
     // Function to create Razorpay order
     function createRazorpayOrder(amount, type) {
+        
       fetch('/create-razorpay-order', {  // API endpoint to create Razorpay order on the backend
         method: 'POST',
         headers: {
@@ -69,6 +75,8 @@ let balance = 0; // Starting balance (could be fetched from the database)
       })
       .then(response => response.json())
       .then(data => {
+        // console.log(razorpayKey);
+
         var options = {
           "key": razorpayKey, // Replace with your Razorpay key
           "amount": amount * 100, // Amount in paise (100 paise = 1 INR)
@@ -78,6 +86,7 @@ let balance = 0; // Starting balance (could be fetched from the database)
           "description": type === 'deposit' ? "Deposit to Wallet" : "Withdraw from Wallet",
           "image": "{{ asset('images/valtent_logo.jpeg') }}", // Your logo URL
           "handler": function(response) {
+            alert("rohit v");
             // Process the payment ID and send it back to the backend for verification
             fetch('/process-razorpay-payment', {  // API endpoint to verify Razorpay payment on the backend
               method: 'POST',
@@ -126,9 +135,9 @@ let balance = 0; // Starting balance (could be fetched from the database)
             });
           },
           "prefill": {
-            "name": "{{ auth()->user()->name }}",
-            "email": "{{ auth()->user()->email }}",
-            "contact": "{{ auth()->user()->phone }}",
+            "name": name,
+            "email": email,
+            "contact": contact,
           },
           "theme": {
             "color": "#28a745",

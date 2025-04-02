@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page Not Found</title>
+    <link rel="shortcut icon" type="image/ico" href="https://test.payu.in/images/favicon.png" />
+    <link href="https://test.payu.in/css/main.css" rel="stylesheet" type="text/css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;500&display=swap" rel="stylesheet">
+    <!--[if IE 6]>
+    <link rel="stylesheet" type="text/css" href="css/ie6.css" />
+
+    <![endif]-->
+    <style type="text/css">
+        html, body {background: url('https://test.payu.in/images/errorThinkingMan.png');}
+    </style>
+    <link href="https://test.payu.in/css/errorPage.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+    <div id="wrapper">
+        <div id="MainContainer">
+            <div id="header">
+                <div class="logo" id="Payulogo"></div>
+                <div class="merchantName"></div>
+            </div>
+            <div id="MainMsgArea">
+                <div class="MsgArea">
+                    <h1>Oops, Page Not Found !</h1>
+                    <h3>Please check the URL</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -29,6 +29,12 @@
     </div>
   </div>
 </div>
+<script>
+    window.razorpayKey = "{{ env('RAZORPAY_KEY_ID') }}"; // Assign Razorpay Key to JS global object
+    window.name = "{{ auth()->user()->name }}";
+    window.email = "{{ auth()->user()->email }}";
+    window.contact = "{{ auth()->user()->phone }}";
+</script>
 <script src="{{ asset('js/wallet.js') }}"></script>
 </body>
 @endsection
