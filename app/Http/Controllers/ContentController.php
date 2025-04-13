@@ -88,7 +88,7 @@ class ContentController extends Controller
     {
         // Fetch content associated with the creator (creator id is decrypted)
         $creatorId = Crypt::decrypt($id);
-        $contents = Content::where('cre_id', $creatorId)->get(); // Fetch content related to the creator
+        $contents = Content::where('cre_id', $creatorId)->latest()->get(); // Fetch content related to the creator
 
         return view('creator_content', compact('contents', 'creatorId'));
     }

@@ -67,18 +67,6 @@
             </form>
         </div>
     </div>
-    <!-- Add Content Button with + Sign -->
-    <div class="fixed bottom-10 right-10">
-        <a href="{{ route('creator.content', ['id' => Crypt::encrypt(Auth::user()->id)]) }}" class="bg-green-600 text-white p-4 rounded-full text-2xl shadow-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
-            Contents
-        </a>
-    </div>
-    <div class="fixed bottom-6 right-15">
-        <a href="{{ route('content.showall') }}" class="inline-block bg-green-600 text-white p-4 rounded-full shadow-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
-            <i class="fas fa-home text-2xl"></i> <!-- Font Awesome Home icon -->
-        </a>
-    </div>
-    
     <script>
         // JavaScript to show the "Value" field when "Media" type is selected
         document.getElementById('type').addEventListener('change', function() {

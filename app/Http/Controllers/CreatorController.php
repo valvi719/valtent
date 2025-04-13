@@ -37,7 +37,7 @@ class CreatorController extends Controller
             'password' => 'required|string|min:8|confirmed',
             'address' => 'required|string|max:255',
             'city' => 'required|string|max:255',
-            'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048', // Validate the profile photo
+            'profile_photo' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048', // Validate the profile photo
         ]);
 
         // Handle file upload

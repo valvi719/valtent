@@ -74,6 +74,9 @@
             </div>
 
             <button type="submit" class="w-full bg-green-600 text-white p-3 rounded-md hover:bg-green-700 focus:outline-none">Sign Up</button>
+            <div class="text-center mt-4">
+                <a href="{{ route('login') }}" class="text-sm text-blue-600 hover:text-blue-800">Have an account ?</a>
+            </div>
         </form>
     </div>
 </body>

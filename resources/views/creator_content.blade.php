@@ -3,6 +3,25 @@
 @section('content')
 
 <div class="container mx-auto px-4 py-6">
+    <!-- User Profile Section -->
+<div class="flex flex-col md:flex-row items-center md:items-start justify-center mb-10">
+    <!-- Profile Image -->
+    <div class="w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 border-green-500 mb-4 md:mb-0 md:mr-10">
+        <img src="{{ asset('storage/public/profile_photos/' . Auth::user()->profile_photo) }}" class="w-full h-full object-cover" alt="Profile Photo">
+    </div>
+
+    <!-- User Info -->
+    <div class="text-center md:text-left">
+        <h2 class="text-2xl font-bold">{{ Auth::user()->name }}</h2>
+        <div class="flex justify-center md:justify-start space-x-6 mt-2 text-gray-600">
+            <span><strong>{{ $contents->count() }}</strong> posts</span>
+            <span><strong>1M</strong> followers</span> <!-- Replace with real data -->
+            <span><strong>180</strong> following</span> <!-- Replace with real data -->
+        </div>
+        <p class="mt-3 text-sm">Singer</p>
+    </div>
+</div>
+
     <h1 class="text-3xl font-semibold text-center mb-6">My Content</h1>
 
     <!-- Check if there are contents available -->
@@ -44,14 +63,6 @@
         </div>
     @endif
 </div>
-
-<!-- Add Content Button with + Sign -->
-<div class="fixed bottom-10 right-10">
-    <a href="{{ route('content.create', ['id' => Crypt::encrypt(Auth::user()->id)]) }}" class="bg-green-600 text-white p-4 rounded-full text-2xl shadow-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
-        +
-    </a>
-</div>
-
 <!-- Modal structure -->
 <div id="contentModal" class="modal">
     <div class="bg-white relative">

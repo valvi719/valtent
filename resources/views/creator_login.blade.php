@@ -39,7 +39,9 @@
             <div class="text-center mt-4">
                 <a href="{{ route('password.request') }}" class="text-sm text-blue-600 hover:text-blue-800">Forgot Password?</a>
             </div>            
-
+            <div class="text-center mt-4">
+                <a href="{{ route('show.form') }}" class="text-sm text-blue-600 hover:text-blue-800">New to Valtent?</a>
+            </div>
             @error('email')
                 <div class="mt-4 text-center text-sm text-red-600">{{ $message }}</div>
             @enderror
