@@ -11,6 +11,7 @@ class Content extends Model
     use HasFactory;
     protected $table = 'contents';
     protected $fillable = ['name', 'type', 'value','cre_id','duration'];
+    protected $appends = ['user_liked'];
 
     // Validation rules
     public static function validate($data)
@@ -33,6 +34,11 @@ class Content extends Model
     public function creator()
     {
         return $this->belongsTo(Creator::class, 'cre_id');
+    }
+
+    public function getUserLikedAttribute()
+    {
+        return $this->likes->contains('user_id', auth()->id());
     }
     
 }

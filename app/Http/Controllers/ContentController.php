@@ -88,14 +88,19 @@ class ContentController extends Controller
     {
         // Fetch content associated with the creator (creator id is decrypted)
         $creatorId = Crypt::decrypt($id);
-        $contents = Content::where('cre_id', $creatorId)->latest()->get(); // Fetch content related to the creator
+        $contents = Content::with('creator')
+        ->where('cre_id', $creatorId)
+        ->latest()
+        ->get();
 
-        return view('creator_content', compact('contents', 'creatorId'));
+        $likedContents = ContentLike::where('liked_by', Auth::id())->pluck('con_id')->toArray();
+
+        return view('creator_content', compact('contents', 'creatorId', 'likedContents'));
     }
     public function modalContent($content_id)
     {
         $content = Content::findOrFail($content_id);
-
+        $likedContents = ContentLike::where('liked_by', Auth::id())->pluck('con_id')->toArray();
         // Prepare response data (could include other data as needed)
         return response()->json([
             'id' => $content->id,
@@ -103,6 +108,8 @@ class ContentController extends Controller
             'value' => $content->value,
             'type' => $content->type,
             'url' => asset('storage/' . $content->value),  // Assuming media file is stored in the storage folder
+            'likedContents' => $likedContents,
+            'like_count' => $content->likes()->count(),
         ]);
         
     }

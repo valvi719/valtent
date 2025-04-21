@@ -37,12 +37,12 @@
 </header>
 
 <!-- Mobile Sidebar -->
-<aside id="mobileSidebar" class="fixed top-0 left-0 h-full w-60 bg-green-600 text-white shadow-lg z-40 transform -translate-x-full transition-transform duration-300 md:hidden"
+<aside id="mobileSidebar" class="fixed top-0 left-0 h-full w-60 bg-green-600 text-white shadow-lg z-[100] transform -translate-x-full transition-transform duration-300 md:hidden pt-16"
        role="dialog" aria-label="Mobile Sidebar" aria-hidden="true">
     <div class="flex flex-col h-full">
         <!-- Close Button -->
         <div class="flex items-center justify-end px-4 py-4 border-b border-green-700">
-            <button id="closeSidebar" aria-label="Close sidebar" class="text-white text-2xl focus:outline-none focus:ring-2 focus:ring-white">
+            <button id="closeSidebar" aria-label="Close sidebar" class="text-white text-2xl focus:outline-none focus:ring-2 focus:ring-white bg-red-500 p-2 rounded">
                 <i class="fas fa-times"></i>
             </button>
         </div>

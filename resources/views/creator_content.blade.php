@@ -15,7 +15,7 @@
         <h2 class="text-2xl font-bold">{{ Auth::user()->name }}</h2>
         <div class="flex justify-center md:justify-start space-x-6 mt-2 text-gray-600">
             <span><strong>{{ $contents->count() }}</strong> posts</span>
-            <span><strong>1M</strong> followers</span> <!-- Replace with real data -->
+            <span><strong>38.5M</strong> followers</span> <!-- Replace with real data -->
             <span><strong>180</strong> following</span> <!-- Replace with real data -->
         </div>
         <p class="mt-3 text-sm">Singer</p>
@@ -31,37 +31,56 @@
         <!-- Grid Layout for displaying content -->
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             @foreach($contents as $content)
-                <div class="bg-white rounded-lg shadow-lg overflow-hidden" data-content-id="{{ $content->id }}" onclick="openModal(this)">
+            <div class="flex flex-col bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300">
+                
+                <!-- Media Preview Area -->
+                <div class="relative h-48 w-full bg-gray-200 overflow-hidden cursor-pointer" data-content-id="{{ $content->id }}" onclick="openModal(this)">
                     <input type="hidden" name="content_id" value="{{ $content->id }}">
-                    <div class="relative">
-                        @if($content->type == 'Media')
-                            <!-- If the content is media (image or video) -->
-                            @if(str_contains($content->value, '.mp4'))
-                                <!-- Video Content -->
-                                <video class="w-full h-48 object-cover" controls>
-                                    <source src="{{ asset('storage/' . $content->value) }}" type="video/mp4">
-                                    Your browser does not support the video tag.
-                                </video>
-                            @else
-                                <!-- Image Content -->
-                                <img class="w-full h-48 object-cover" src="{{ asset('storage/' . $content->value) }}" alt="{{ $content->name }}">
-                            @endif
+
+                    @if($content->type == 'Media')
+                        @if(str_contains($content->value, '.mp4'))
+                            <video class="absolute inset-0 w-full h-full object-cover rounded-md" muted autoplay loop playsinline>
+                                <source src="{{ asset('storage/' . $content->value) }}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
                         @else
-                            <!-- Handle NFT Content (for example, display a placeholder) -->
-                            <div class="w-full h-48 bg-gray-300 flex items-center justify-center">
-                                <span class="text-white">NFT</span>
-                            </div>
+                            <img class="absolute inset-0 w-full h-full object-cover rounded-md" src="{{ asset('storage/' . $content->value) }}" alt="{{ $content->name }}">
                         @endif
+                    @else
+                        <div class="absolute inset-0 flex items-center justify-center text-xl text-gray-500 bg-gray-300 rounded-md">
+                            NFT
+                        </div>
+                    @endif
+                </div>
+
+                <!-- Like + Description -->
+                <div class="p-4 flex flex-col justify-between flex-grow">
+                
+
+                    <div class="flex justify-between items-center mb-2">
+                        <button class="like-btn text-xl focus:outline-none" data-content-id="{{ $content->id }}">
+                        <span class="like-text text-{{ in_array($content->id, $likedContents) ? 'green' : 'gray' }}-500">
+                            {{ in_array($content->id, $likedContents) ? '♥' : '♡' }}
+                        </span>
+                        <span class="like-count">
+                            @php $likeCount = $content->likes()->count(); @endphp
+                            @if($likeCount > 1)
+                                {{ $likeCount }} Likes
+                            @elseif($likeCount === 1)
+                                1 Like
+                            @endif
+                        </span>
+                        </button>
                     </div>
 
-                    <div class="p-4">
-                        <h3 class="text-xl font-semibold">{{ $content->name }}</h3>
-                        <p class="text-gray-500">{{ $content->type }}</p>
-                    </div>
+                    <p class="text-gray-700 text-sm truncate">
+                        <span class="font-semibold">{{ $content->name }}</span> {{ $content->name }}
+                    </p>
                 </div>
+            </div>
             @endforeach
         </div>
-    @endif
+     @endif
 </div>
 <!-- Modal structure -->
 <div id="contentModal" class="modal">
@@ -77,69 +96,152 @@
 </div>
 
 <script>
+    window.addEventListener('load', function () {
+        const modal = document.getElementById('contentModal');
+        modal.style.display = 'none';
+    });
 
+    function openModal(element) {
+        const contentId = element.querySelector('input[name="content_id"]').value;
+        const modal = document.getElementById('contentModal');
+        modal.style.display = 'flex';
 
-// Initially hide the modal after page loads
-window.addEventListener('load', function() {
-    const modal = document.getElementById('contentModal');
-    modal.style.display = 'none'; // Ensure modal is hidden on page load
-});
+        fetch(`/modalcontent/${contentId}`)
+            .then(response => response.json())
+            .then(data => {
+                const modalContent = document.getElementById('modalContent');
+                modalContent.innerHTML = '';
 
-// Open Modal when a post is clicked
-function openModal(element) {
-    const contentId = element.querySelector('input[name="content_id"]').value;
+                if (data.type === 'Media') {
+                    if (data.value.includes('.mp4')) {
+                        modalContent.innerHTML = `
+                            <video class="w-full h-auto object-contain rounded-lg" controls>
+                                <source src="${data.url}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        `;
+                    } else {
+                        modalContent.innerHTML = `
+                            <img class="w-full h-auto object-contain rounded-lg" src="${data.url}" alt="${data.name}">
+                        `;
+                    }
+                } else {
+                    modalContent.innerHTML = `
+                        <div class="w-full h-full bg-gray-300 flex items-center justify-center">
+                            <span class="text-white">NFT</span>
+                        </div>
+                    `;
+                }
 
-    // Show the modal
-    const modal = document.getElementById('contentModal');
-    modal.style.display = 'flex';  // Show the modal
-
-    // Send AJAX request to fetch content details
-    fetch(`/modalcontent/${contentId}`)
-        .then(response => response.json())
-        .then(data => {
-            const modalContent = document.getElementById('modalContent');
-            modalContent.innerHTML = '';
-            console.log(data);
-            // Depending on the content type (Image, Video, or NFT)
-             // Depending on the content type (Image, Video, or NFT)
-        if (data.type === 'Media') {
-            if (data.value.includes('.mp4')) {
-                modalContent.innerHTML = `
-                    <video class="w-full h-auto object-cover" controls>
-                        <source src="${data.url}" type="video/mp4">
-                        Your browser does not support the video tag.
-                    </video>
+                modalContent.innerHTML += `
+                    <div class="p-4">
+                        <button class="modal-like-btn text-xl focus:outline-none" data-content-id="${data.id}">
+                            <span class="like-text text-${data.likedContents.includes(data.id) ? 'green' : 'gray'}-500">
+                                ${data.likedContents.includes(data.id) ? '♥' : '♡'}
+                            </span>
+                            <span class="like-count">
+                                ${data.like_count > 1 ? data.like_count + ' Likes' : data.like_count === 1 ? '1 Like' : ''}
+                            </span>
+                        </button>
+                        <h3 class="text-xl font-semibold">${data.name}</h3>
+                        <p class="text-gray-500">${data.type}</p>
+                    </div>
                 `;
-            } else {
-                modalContent.innerHTML = `
-                    <img class="w-full h-auto object-cover" src="${data.url}" alt="${data.name}">
-                `;
-            }
-        } else {
-            modalContent.innerHTML = `
-                <div class="w-full h-full bg-gray-300 flex items-center justify-center">
-                    <span class="text-white">NFT</span>
-                </div>
-            `;
+            })
+            .catch(error => {
+                console.error('Error fetching content:', error);
+            });
+    }
+
+    document.addEventListener('click', function (e) {
+        // Handle modal like button click
+        if (e.target.closest('.modal-like-btn')) {
+            const button = e.target.closest('.modal-like-btn');
+            const contentId = button.getAttribute('data-content-id');
+            const likeText = button.querySelector('.like-text');
+            const likeCount = button.querySelector('.like-count');
+
+            fetch(`/content/${contentId}/like`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                },
+                body: JSON.stringify({}),
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.message === 'liked') {
+                        likeText.textContent = '♥';
+                        likeText.classList.replace('text-gray-500', 'text-green-500');
+                    } else {
+                        likeText.textContent = '♡';
+                        likeText.classList.replace('text-green-500', 'text-gray-500');
+                    }
+
+                    likeCount.textContent =
+                        data.like_count === 0
+                            ? ''
+                            : data.like_count === 1
+                            ? '1 Like'
+                            : `${data.like_count} Likes`;
+
+                    // Sync main card like status if visible
+                    const cardBtn = document.querySelector(`.like-btn[data-content-id="${contentId}"]`);
+                    if (cardBtn) {
+                        const cardLikeText = cardBtn.querySelector('.like-text');
+                        const cardLikeCount = cardBtn.querySelector('.like-count');
+
+                        cardLikeText.textContent = likeText.textContent;
+                        cardLikeText.className = likeText.className;
+                        cardLikeCount.textContent = likeCount.textContent;
+                    }
+                })
+                .catch(error => console.error('Error:', error));
         }
-            modalContent.innerHTML += `
-                <div class="p-4">
-                    <h3 class="text-xl font-semibold">${data.name}</h3>
-                    <p class="text-gray-500">${data.type}</p>
-                </div>
-            `;
-        })
-        .catch(error => {
-            console.error('Error fetching content:', error);
-        });
-}
 
-// Close Modal when close button is clicked
-document.getElementById('closeModal').addEventListener('click', function() {
-    const modal = document.getElementById('contentModal');
-    modal.style.display = 'none';  // Hide modal by setting display to none
-});
-</script> 
+        // Handle main card like button
+        if (e.target.closest('.like-btn')) {
+            const button = e.target.closest('.like-btn');
+            const contentId = button.getAttribute('data-content-id');
+            const likeText = button.querySelector('.like-text');
+            const likeCount = button.querySelector('.like-count');
+
+            fetch(`/content/${contentId}/like`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                },
+                body: JSON.stringify({}),
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.message === 'liked') {
+                        likeText.textContent = '♥';
+                        likeText.classList.replace('text-gray-500', 'text-green-500');
+                    } else {
+                        likeText.textContent = '♡';
+                        likeText.classList.replace('text-green-500', 'text-gray-500');
+                    }
+
+                    likeCount.textContent =
+                        data.like_count === 0
+                            ? ''
+                            : data.like_count === 1
+                            ? '1 Like'
+                            : `${data.like_count} Likes`;
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        // Handle modal close
+        if (e.target.id === 'closeModal') {
+            document.getElementById('contentModal').style.display = 'none';
+        }
+    });
+</script>
+ 
 
 <style>
 /* Modal background to cover the entire screen */
