@@ -25,4 +25,9 @@
     @include('layouts.footer')
 
 </body>
+<style>
+.like-text {
+    font-size: 28px;
+}
+</style>
 </html>

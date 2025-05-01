@@ -1,0 +1,46 @@
+/* Modal background to cover the entire screen */
+.modal{
+    display: none;  /* Initially hidden */
+    position: fixed;  /* Fixed position to cover the entire screen */
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);  /* Dark background to dim the page */
+    z-index: 9999;  /* Ensures the modal is above everything else */
+    justify-content: center;  /* Center modal horizontally */
+    align-items: center;  /* Center modal vertically */
+}
+
+/* Modal content styling */
+.modal .bg-white {
+    width: 40%;  /* Adjust the width of the modal to 40% of the screen */
+    height: auto;  /* Auto height, so content can adjust */
+    max-width: 800px;  /* Set a max-width to prevent it from being too wide */
+    padding: 15px;  /* Reduced padding for a more compact look */
+    border-radius: 8px;  /* Rounded corners */
+    background-color: white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);  /* Light shadow for visual separation */
+}
+
+/* Close button */
+#closeModal {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: #f44336;
+    color: white;
+    border-radius: 50%;
+    padding: 10px;
+    cursor: pointer;
+    z-index: 10000; 
+}
+
+/* Ensure modal content fits inside */
+#modalContent {
+    max-height: 400px;  /* Limit the height of content to prevent overflow */
+    overflow-y: auto;  /* Make content scrollable if it exceeds the max height */
+    z-index: 999;  /* Ensure video content is placed correctly */
+    width: 100%;  /* Full width of the modal */
+    height: auto;
+}

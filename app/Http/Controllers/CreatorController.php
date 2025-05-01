@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Creator;
+use App\Models\Follower;
+use App\Models\Following;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
@@ -14,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 use App\Mail\OtpVerificationMail;
 
@@ -30,6 +33,7 @@ class CreatorController extends Controller
         // Validate the form inputs
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'username' => 'required|string|max:255|unique:creators,username',
             'phone' => 'required|string|max:15',
             'account_number' => 'required|string|max:50',
             'ifsc_code' => 'required|string|max:20',
@@ -54,6 +58,7 @@ class CreatorController extends Controller
         // Create the user
         $user = Creator::create([
             'name' => $validated['name'],
+            'username' => $validated['username'],
             'phone' => $validated['phone'],
             'email' => $validated['email'],
             'account_number' => $validated['account_number'],
@@ -82,6 +87,19 @@ class CreatorController extends Controller
         // Redirect to OTP verification page
         return redirect()->route('verify.otp', ['id' => $id])->with('success', 'You are registered successfully! Check your email for OTP.');
     }
+
+    public function checkUsername(Request $request)
+    {
+        $exists = Creator::where('username', $request->username)->exists();
+        return response()->json(['exists' => $exists]);
+    }
+
+    public function checkEmail(Request $request)
+    {
+        $exists = Creator::where('email', $request->email)->exists();
+        return response()->json(['exists' => $exists]);
+    }
+
     // Show OTP Verification Form
     public function showOtpForm($id)
     {
@@ -132,7 +150,7 @@ class CreatorController extends Controller
             Auth::login($user);
             $id = Crypt::encrypt($user->id);
             // Redirect to the creator's content page using the encrypted ID
-            return redirect()->route('creator.content', ['id' => $id]); // Redirect to the content route
+            return redirect()->route('creator.content', ['username' => Auth::user()->username]); // Redirect to the content route
         }
 
         // If login fails
@@ -208,4 +226,125 @@ class CreatorController extends Controller
             return back()->withErrors(['email' => 'We could not reset your password. Please try again.']);
         }
     }
+
+    //Edit Profile
+    public function editProfile()
+    {
+        $creator = auth()->user();
+        return view('edit-profile', compact('creator'));
+    } 
+
+    public function updateProfile(Request $request)
+    {
+        $rules = [
+            'relationship_status' => 'nullable|in:Single,In a Relationship With,Engaged To,Married To,It\'s Complicated,In an Open Relationship With',
+            'relationship_status_since' => 'nullable|date|before_or_equal:today',
+            'bio' => 'nullable|string|max:1000',
+            'profile_photo' => 'nullable|image|max:2048',
+        ];
+
+        // Add validation for relationship_with only if a relationship status that implies one is selected
+        if (in_array($request->relationship_status, ['In a Relationship With', 'Engaged To', 'Married To', 'In an Open Relationship With']) && $request->filled('relationship_with')) {
+            $rules['relationship_with'] = [
+                'required',
+                'string',
+                'max:255',
+                Rule::exists('creators', 'username')->whereNot('id', Auth::id()), // Ensure username exists and is not the current user's
+            ];
+        } else {
+            $rules['relationship_with'] = 'nullable|string|max:255'; // Allow nullable if no relationship selected
+        }
+
+        $request->validate($rules);
+
+        $creator = auth()->user();
+
+        // Only handle the profile photo if uploaded
+        if ($request->hasFile('profile_photo') && $request->file('profile_photo')->isValid()) {
+            $profilePhoto = $request->file('profile_photo');
+            $profilePhotoName = time() . '-' . $profilePhoto->getClientOriginalName();
+            $profilePhotoPath = $profilePhoto->storeAs('public/profile_photos', $profilePhotoName);
+            $creator->profile_photo = basename($profilePhotoPath);
+        }
+
+        $creator->relationship_status = $request->relationship_status;
+        $creator->relationship_status_since = $request->relationship_status_since;
+        $creator->relationship_with = $request->relationship_with;
+        $creator->bio = $request->bio;
+        $creator->save();
+
+        return redirect()->route('creator.content', ['username' => Auth::user()->username])
+            ->with('success', 'Profile updated successfully!');
+    }
+    
+    //Search Creators
+    public function searchCreators(Request $request)
+    {
+        $query = $request->input('q');
+
+        if (!$query) {
+            return response()->json([]);
+        }
+
+        $loggedInUserId = Auth::id();
+        
+
+        $creators = Creator::where('username', 'like', '%' . $query . '%')
+            ->orWhere('name', 'like', '%' . $query . '%')
+            ->limit(10)
+            ->get()
+            ->map(function ($creator) use ($loggedInUserId) {
+                return [
+                    'id' => $creator->id,
+                    'username' => $creator->username,
+                    'loggedInUserId' => $loggedInUserId,
+                    'profile_photo' => $creator->profile_photo
+                        ? asset('storage/public/profile_photos/' . $creator->profile_photo)
+                        : 'https://ui-avatars.com/api/?name=' . urlencode($creator->username) . '&background=random&color=fff',
+                        
+                ];
+            });
+
+        return response()->json($creators);
+    }
+
+    public function searchCreators2(Request $request)
+    {
+        $query = $request->input('query');
+        $loggedInUserId = Auth::id(); // Get the ID of the currently logged-in user
+
+        $creators = Creator::where('id', '!=', $loggedInUserId) // Exclude the logged-in user
+            ->where(function ($q) use ($query) {
+                $q->where('username', 'like', '%' . $query . '%')
+                    ->orWhere('name', 'like', '%' . $query . '%');
+            })
+            ->limit(10)
+            ->get(['id', 'username', 'name','profile_photo']);
+
+        return response()->json($creators);
+    }
+
+    //Followers and Following
+    public function fetchFollowers($creatorId)
+    {
+        $followers = Follower::where('cre_id', $creatorId)
+            ->with('followerUser:id,username,name,profile_photo')
+            ->limit(50) // limit followers
+            ->get()
+            ->pluck('followerUser');
+
+        return response()->json($followers);
+    }
+
+    public function fetchFollowing($creatorId)
+    {
+        $following = Following::where('cre_id', $creatorId)
+            ->with('followingUser:id,username,name,profile_photo')
+            ->limit(50) // limit following
+            ->get()
+            ->pluck('followingUser');
+
+        return response()->json($following);
+    }
+
 }

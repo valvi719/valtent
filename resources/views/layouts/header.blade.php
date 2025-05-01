@@ -4,9 +4,11 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="icon" href="{{ asset('images/valtent_logo.jpeg') }}" type="image/x-icon">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <link rel="stylesheet" href="{{ asset('css/wallet.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/creator_content_and_profile.css') }}">
 
     <div class="max-w-7xl mx-auto px-4 flex justify-between items-center">
         <!-- Logo -->
@@ -58,20 +60,25 @@
 
     <!-- TailwindCSS and custom JS for dropdown -->
     <script>
-        // Toggle the profile dropdown on click
-        document.getElementById('profileButton').addEventListener('click', function() {
-            let dropdown = document.getElementById('profileDropdown');
-            dropdown.classList.toggle('hidden');
-        });
+        document.addEventListener('DOMContentLoaded', function() {
+            const profileButton = document.getElementById('profileButton');
+            const profileDropdown = document.getElementById('profileDropdown');
 
-        // Close the dropdown if clicked outside
-        document.addEventListener('click', function(event) {
-            let dropdown = document.getElementById('profileDropdown');
-            let profileButton = document.getElementById('profileButton');
-            
-            if (!profileButton.contains(event.target) && !dropdown.contains(event.target)) {
-                dropdown.classList.add('hidden');
+            if (profileButton) {
+                // Toggle the profile dropdown on click
+                profileButton.addEventListener('click', function() {
+                    profileDropdown.classList.toggle('hidden');
+                });
             }
+
+            // Close the dropdown if clicked outside
+            document.addEventListener('click', function(event) {
+                if (profileButton && profileDropdown) {
+                    if (!profileButton.contains(event.target) && !profileDropdown.contains(event.target)) {
+                        profileDropdown.classList.add('hidden');
+                    }
+                }
+            });
         });
     </script>
 </header>

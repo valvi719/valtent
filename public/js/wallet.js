@@ -86,7 +86,7 @@
           "description": type === 'deposit' ? "Deposit to Wallet" : "Withdraw from Wallet",
           "image": "{{ asset('images/valtent_logo.jpeg') }}", // Your logo URL
           "handler": function(response) {
-            alert("rohit v");
+             
             // Process the payment ID and send it back to the backend for verification
             fetch('/process-razorpay-payment', {  // API endpoint to verify Razorpay payment on the backend
               method: 'POST',

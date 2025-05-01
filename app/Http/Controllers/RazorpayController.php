@@ -80,6 +80,7 @@ class RazorpayController extends Controller
     
     public function showwallet()
     {
+        // dd('rohit');
         $userCreId = auth()->id();
         $wallet = Conbank::where('cre_id', $userCreId)->first();
         if (!$wallet) {

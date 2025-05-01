@@ -11,6 +11,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use FFMpeg\FFMpeg;
 use App\Models\ContentLike;
+use App\Models\Creator;
+use App\Models\Follower;
+use App\Models\Following;
 
 class ContentController extends Controller
 {
@@ -84,10 +87,12 @@ class ContentController extends Controller
 
         return redirect()->route('content.create',['id' => $id])->with('success', 'Content created successfully!');
     }
-    public function index($id)
+    public function index($username)
     {
+        
         // Fetch content associated with the creator (creator id is decrypted)
-        $creatorId = Crypt::decrypt($id);
+        $creatorId = Auth::user()->id;
+        $creator = Creator::where('username', $username)->firstOrFail();
         $contents = Content::with('creator')
         ->where('cre_id', $creatorId)
         ->latest()
@@ -95,12 +100,13 @@ class ContentController extends Controller
 
         $likedContents = ContentLike::where('liked_by', Auth::id())->pluck('con_id')->toArray();
 
-        return view('creator_content', compact('contents', 'creatorId', 'likedContents'));
+        return view('creator_content', compact('creator','contents', 'creatorId', 'likedContents'));
     }
     public function modalContent($content_id)
     {
         $content = Content::findOrFail($content_id);
         $likedContents = ContentLike::where('liked_by', Auth::id())->pluck('con_id')->toArray();
+        $creator = $content->creator; // Access the creator relationship
         // Prepare response data (could include other data as needed)
         return response()->json([
             'id' => $content->id,
@@ -110,64 +116,107 @@ class ContentController extends Controller
             'url' => asset('storage/' . $content->value),  // Assuming media file is stored in the storage folder
             'likedContents' => $likedContents,
             'like_count' => $content->likes()->count(),
+            'creator_username' => $creator->username, // Pass creator username
+            'creator_profile_photo' => asset('storage/public/profile_photos/' . $creator->profile_photo), // Pass profile photo URL
         ]);
         
     }
+
+    public function destroy($id)
+    {
+        $content = Content::findOrFail($id);
+
+        // Check if current user is the owner
+        if ($content->cre_id != auth()->id()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        // Delete the media file from storage
+        if ($content->value && Storage::disk('public')->exists($content->value)) {
+            Storage::disk('public')->delete($content->value);
+        }
+
+        // Delete the content
+        $content->delete();
+
+        return response()->json(['message' => 'Content deleted successfully']);
+    }
+
     public function showall()
-    {  
-        // dd('rr');
-        $contents = Content::with('creator')->latest()->get();
+    {
+        // Get the ID of the currently logged-in user
+        $currentUserId = Auth::id();
+        
+        // Get the IDs of creators the current user is already following
+        $followingIds = Follower::where('follower', $currentUserId)->pluck('cre_id')->toArray();
+
+        // Get content only from followed creators
+        $contents = Content::with('creator')->whereIn('cre_id', $followingIds)->latest()->get();
+
         $likedContents = ContentLike::where('liked_by', Auth::id())->pluck('con_id')->toArray();
-        // dd($contents);
-        return view('home_contents', compact('contents','likedContents'));
+
+        // Get suggested creators (randomly select a few who the user isn't following)
+        $suggestedCreators = Creator::where('id', '!=', $currentUserId)
+            ->whereNotIn('id', $followingIds)
+            ->inRandomOrder()
+            ->limit(5) // Adjust the number of suggestions as needed
+            ->get(['id', 'username', 'name', 'profile_photo']);
+
+        return view('home_contents', compact('contents', 'likedContents', 'suggestedCreators'));
     }
 
     public function toggleLike($contentId)
     {
-        
         try {
-            
             $content = Content::findOrFail($contentId);
-            $conbank = Conbank::where('cre_id', auth()->user()->id)->first();
             $creatorId = Auth::id(); // Get the logged-in user's ID
-            if($creatorId==null)
-            {
+
+            if ($creatorId == null) {
                 return redirect()->route('login'); 
             }
-            // dd($creatorId);
+
+            // Fetch the conbank record for the user
+            $conbank = Conbank::where('cre_id', $creatorId)->first();
+
+            // Block like/unlike if conbank is missing or balance is null
+            if (!$conbank || is_null($conbank->balance)) {
+                return response()->json(['error' => 'Please add balance to your wallet.'], 403);
+            }
+
             // Check if the user has already liked the content
             $existingLike = ContentLike::where('con_id', $contentId)
                                     ->where('liked_by', $creatorId)
                                     ->first();
-                                   
+
             if ($existingLike) {
-                // If like exists, delete the like (unlike)
+                // Unlike
                 $existingLike->delete();
                 $message = 'unliked';
-                $conbank->balance +=  1;
+                $conbank->balance += 1;
             } else {
-                // dd('rr');    
-                // Otherwise, create a new like
+                // Like
                 ContentLike::create([
                     'con_id' => $contentId,
                     'liked_by' => $creatorId,
                     'name' => 'Like',
                 ]);
                 $message = 'liked';
-                
-                $conbank->balance -=  1;
+                $conbank->balance -= 1;
             }
+
             $conbank->save();
-            // Return the response (we can also return the updated like count here)
+
+            // Return the response
             return response()->json([
                 'message' => $message,
-                'like_count' => $content->likes()->count(), // Return the total like count
+                'like_count' => $content->likes()->count(),
             ]);
+
         } catch (\Exception $e) {
-            // If an error occurs, return an error message
             return response()->json(['error' => 'Something went wrong. Please try again.'], 500);
         }
     }
+
 
     public function extract($contentId)
     {
@@ -178,5 +227,71 @@ class ContentController extends Controller
         DB::table('content_like')->where('con_id', $contentId)->delete();
         
         return response()->json(['success' => true]);
+    }
+
+    public function showProfile($username)
+    {
+        $creator = Creator::where('username', $username)->firstOrFail();
+
+        $contents = $creator->contents()->with('likes')->latest()->get();
+
+        $likedContents = [];
+
+        if (auth()->check()) {
+            // Get all content IDs that the authenticated user has liked
+            $likedContents = ContentLike::where('liked_by', auth()->id())
+                ->pluck('con_id')
+                ->toArray();
+        }
+
+        $isFollowing = false;
+        if (auth()->check()) {
+            $isFollowing = $creator->followers()->where('follower', auth()->id())->exists();
+        }
+        
+        return view('profile', [
+            'creator' => $creator,
+            'contents' => $contents,
+            'likedContents' => $likedContents,
+            'isFollowing' => $isFollowing
+        ]);
+    }
+
+    public function toggleFollow(Creator $creator)
+    {
+        $currentUserId = auth()->id();
+        $targetCreatorId = $creator->id;
+
+        // Check if current user is already following the target
+        $isFollowing = Follower::where('cre_id', $targetCreatorId)
+                        ->where('follower', $currentUserId)
+                        ->exists();
+
+        if ($isFollowing) {
+            // Unfollow - Remove both follower and following records
+            Follower::where('cre_id', $targetCreatorId)
+                ->where('follower', $currentUserId)
+                ->delete();
+
+            Following::where('cre_id', $currentUserId)
+                ->where('whom', $targetCreatorId)
+                ->delete();
+
+            return response()->json(['status' => 'unfollowed']);
+        } else {
+            // Follow - Add both follower and following records
+            Follower::create([
+                'cre_id' => $targetCreatorId,
+                'follower' => $currentUserId,
+            ]);
+
+            Following::create([
+                'cre_id' => $currentUserId,
+                'whom' => $targetCreatorId,
+            ]);
+
+            return response()->json(['status' => 'followed']);
+        }
+
     }
 }

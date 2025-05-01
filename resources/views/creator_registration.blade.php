@@ -20,6 +20,13 @@
             </div>
 
             <div class="mb-4">
+                <label for="username" class="block text-sm font-medium text-gray-700">User Name</label>
+                <input type="text" id="username" name="username" class="mt-1 block w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-600" required>
+                <div id="username-status" class="text-sm mt-1"></div>
+                @error('username') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+            </div>
+
+            <div class="mb-4">
                 <label for="phone" class="block text-sm font-medium text-gray-700">Phone</label>
                 <input type="text" id="phone" name="phone" class="mt-1 block w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-600" required>
                 @error('phone') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
@@ -28,6 +35,7 @@
             <div class="mb-4">
                 <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
                 <input type="email" id="email" name="email" class="mt-1 block w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-600" required>
+                <div id="email-status" class="text-sm mt-1"></div>
                 @error('email') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
             </div>
              
@@ -58,6 +66,7 @@
             <div class="mb-4">
                 <label for="password_confirmation" class="block text-sm font-medium text-gray-700">Confirm Password</label>
                 <input type="password" id="password_confirmation" name="password_confirmation" class="mt-1 block w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-600" required>
+                <div id="password-match-status" class="text-sm mt-1"></div> 
                 @error('password_confirmation') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
             </div>
 
@@ -79,6 +88,84 @@
             </div>
         </form>
     </div>
+    <script>
+        $(document).ready(function() {
+            $('#username').on('input', function() {
+                // Replace spaces with underscores
+                var username = $(this).val().replace(/\s+/g, '_');
+                
+                // Set the modified value back to the input
+                $(this).val(username);
+
+                if (username.length > 0) {
+                    $.ajax({
+                        url: '{{ route('check.username') }}',
+                        type: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            username: username
+                        },
+                        success: function(response) {
+                            if (response.exists) {
+                                $('#username-status').text('Username is already taken ❌').css('color', 'red');
+                            } else {
+                                $('#username-status').text('Username is available ✅').css('color', 'green');
+                            }
+                        }
+                    });
+                } else {
+                    $('#username-status').text('');
+                }
+            });
+
+
+            $('#email').on('input', function() {
+                var email = $(this).val().trim();
+                if (email.length > 0) {
+                    $.ajax({
+                        url: '{{ route('check.email') }}',
+                        type: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            email: email
+                        },
+                        success: function(response) {
+                            if (response.exists) {
+                                $('#email-status').text('Email is already registered ❌').css('color', 'red');
+                            } else {
+                                $('#email-status').text('Email is available ✅').css('color', 'green');
+                            }
+                        }
+                    });
+                } else {
+                    $('#email-status').text('');
+                }
+            });
+
+            // Password match check
+            $('#password_confirmation').on('input', function() {
+                var password = $('#password').val();
+                var confirmPassword = $(this).val();
+                if (confirmPassword.length > 0) {
+                    if (password === confirmPassword) {
+                        if ($('#password-match-status').length == 0) {
+                            $('<div id="password-match-status" class="text-sm mt-1"></div>').insertAfter('#password_confirmation');
+                        }
+                        $('#password-match-status').text('Password matched ✅').css('color', 'green');
+                    } else {
+                        if ($('#password-match-status').length == 0) {
+                            $('<div id="password-match-status" class="text-sm mt-1"></div>').insertAfter('#password_confirmation');
+                        }
+                        $('#password-match-status').text('Password does not match ❌').css('color', 'red');
+                    }
+                } else {
+                    $('#password-match-status').text('');
+                }
+            });
+
+        });
+        
+    </script>
 </body>
 @endsection
 </html>

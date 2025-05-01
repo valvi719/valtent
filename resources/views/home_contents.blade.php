@@ -7,6 +7,38 @@
 <div class="container mx-auto px-4 py-6">
     <h1 class="text-3xl font-semibold text-center mb-6">Welcome to Your Feed</h1>
 
+    @if($suggestedCreators->isNotEmpty())
+        <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+            <h2 class="text-xl font-semibold mb-3">Suggested for You</h2>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                @foreach($suggestedCreators as $creator)
+                    <div class="flex flex-col items-center">
+                        <a href="#" class="block relative w-16 h-16 rounded-full overflow-hidden mb-2">
+                            <img src="{{ asset('storage/public/profile_photos/' . $creator->profile_photo) }}" alt="{{ $creator->name}}" class="w-full h-full object-cover">
+                        </a>
+                        <a href="/{{$creator->username}}" class="text-sm font-semibold text-center hover:underline">{{ $creator->username }}</a>
+                        @auth
+                            @if(auth()->id() !== $creator->id)
+                                <div class="mt-1">
+                                    <button id="follow-btn-{{ $creator->id }}"
+                                        data-creator-id="{{ $creator->id }}"
+                                        class="px-4 py-1 rounded-full transition duration-300
+                                            {{-- You'll need to determine the initial state in PHP --}}
+                                            {{--  For simplicity, let's assume you have a $isFollowing array in your controller --}}
+                                            {{ in_array($creator->id, $followingIds ?? []) 
+                                                ? 'bg-white text-black border border-black hover:bg-gray-100'
+                                                : 'bg-green-500 text-white hover:bg-green-600' }}">
+                                        {{ in_array($creator->id, $followingIds ?? []) ? 'Unfollow' : 'Follow' }}
+                                    </button>
+                                </div>
+                            @endif
+                        @endauth
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     @if($contents->isEmpty())
         <p class="text-center text-gray-600">No content available. Please follow some creators!</p>
     @else
@@ -18,7 +50,11 @@
                     <!-- Profile Image -->
                     <img src="{{ asset('storage/public/profile_photos/' . $content->creator->profile_photo) }}" alt="User Avatar" class="w-12 h-12 rounded-full mr-3">
                     <div class="flex flex-col flex-grow">
-                        <a href="#" class="font-semibold text-lg">{{ $content->name }}</a>
+                        @if(Auth::user()->username == $content->creator->username)
+                            <a href="me/{{ $content->creator->username }}" class="font-semibold text-lg">{{ $content->creator->username }}</a>
+                        @else
+                            <a href="{{ $content->creator->username }}" class="font-semibold text-lg">{{ $content->creator->username }}</a>
+                        @endif    
                         <p class="text-gray-500 text-sm">{{ $content->created_at->diffForHumans() }}</p>
                     </div>
                     
@@ -144,6 +180,39 @@
                 }
             })
             .catch(error => console.error('Error:', error));
+        });
+    });
+
+    //Toggle Follow Unfollow
+    document.addEventListener('DOMContentLoaded', function () {
+        // Get all follow buttons.  We'll use a class selector
+        const buttons = document.querySelectorAll('[id^="follow-btn-"]');
+
+        buttons.forEach(button => {
+            button.addEventListener('click', function () {
+                const creatorId = this.getAttribute('data-creator-id');
+                const clickedButton = this; // Store the button reference
+
+                fetch(`/creator/${creatorId}/toggle-follow`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'followed') {
+                        clickedButton.className = 'px-4 py-1 rounded-full transition duration-300 bg-white text-black border border-black hover:bg-gray-100';
+                        clickedButton.innerText = 'Unfollow';
+                    } else if (data.status === 'unfollowed') {
+                        clickedButton.className = 'px-4 py-1 rounded-full transition duration-300 bg-green-500 text-white hover:bg-green-600';
+                        clickedButton.innerText = 'Follow';
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            });
         });
     });
 </script>

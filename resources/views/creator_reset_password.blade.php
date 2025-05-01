@@ -35,6 +35,7 @@
             <div class="mb-4">
                 <label for="password_confirmation" class="block text-sm font-medium text-gray-700">Confirm New Password</label>
                 <input type="password" id="password_confirmation" name="password_confirmation" class="mt-1 block w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-600" required>
+                <div id="password-match-status" class="text-sm mt-1"></div>
                 @error('password_confirmation') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
             </div>
 
@@ -45,6 +46,29 @@
             </div>
         </form>
     </div>
+    <script>
+            // Password match check
+            $('#password_confirmation').on('input', function() {
+                var password = $('#password').val();
+                var confirmPassword = $(this).val();
+                if (confirmPassword.length > 0) {
+                    if (password === confirmPassword) {
+                        if ($('#password-match-status').length == 0) {
+                            $('<div id="password-match-status" class="text-sm mt-1"></div>').insertAfter('#password_confirmation');
+                        }
+                        $('#password-match-status').text('Password matched ✅').css('color', 'green');
+                    } else {
+                        if ($('#password-match-status').length == 0) {
+                            $('<div id="password-match-status" class="text-sm mt-1"></div>').insertAfter('#password_confirmation');
+                        }
+                        $('#password-match-status').text('Password does not match ❌').css('color', 'red');
+                    }
+                } else {
+                    $('#password-match-status').text('');
+                }
+            });
+    </script>
 </body>
+
 @endsection
 </html>
