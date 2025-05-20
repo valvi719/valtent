@@ -55,6 +55,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/', [ContentController::class, 'showall'])->name('content.showall');
     Route::post('content/{content}/like', [ContentController::class, 'toggleLike'])->name('like.toggle');
     Route::post('/content/{contentId}/extract', [ContentController::class, 'extract'])->name('content.extract');
+    Route::post('/donate', [ContentController::class, 'donate']);
+    Route::get('/content/{id}/donors/search', [ContentController::class, 'searchDonors']);
+
 
     // Route for viewing content
     Route::get('/me/{username}', [ContentController::class, 'index'])->name('creator.content');

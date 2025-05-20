@@ -39,9 +39,14 @@ class CreatorController extends Controller
             'ifsc_code' => 'required|string|max:20',
             'email' => 'required|email|unique:creators,email',
             'password' => 'required|string|min:8|confirmed',
-            'address' => 'required|string|max:255',
-            'city' => 'required|string|max:255',
+            // 'address' => 'required|string|max:255',
+            // 'city' => 'required|string|max:255',
             'profile_photo' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048', // Validate the profile photo
+            'birthday' => ['required', 'date', function ($attribute, $value, $fail) {
+                if (\Carbon\Carbon::parse($value)->diffInYears(\Carbon\Carbon::now()) < 13) {
+                    $fail('You must be at least 13 years old to register.');
+                }
+            }],
         ]);
 
         // Handle file upload
@@ -64,9 +69,10 @@ class CreatorController extends Controller
             'account_number' => $validated['account_number'],
             'ifsc_code' => $validated['ifsc_code'],
             'password' => Hash::make($validated['password']),
-            'address' => $validated['address'],
-            'city' => $validated['city'],
+            // 'address' => $validated['address'],
+            // 'city' => $validated['city'],
             'profile_photo' => basename($profilePhotoPath),  // Save only the file name (basename) to the database
+            'birthday' => $validated['birthday'],
         ]);
 
         // Generate OTP
@@ -324,23 +330,40 @@ class CreatorController extends Controller
         return response()->json($creators);
     }
 
-    //Followers and Following
-    public function fetchFollowers($creatorId)
+    public function fetchFollowers($creatorId, Request $request)
     {
-        $followers = Follower::where('cre_id', $creatorId)
-            ->with('followerUser:id,username,name,profile_photo')
-            ->limit(50) // limit followers
+        $query = Follower::where('cre_id', $creatorId)
+            ->with('followerUser:id,username,name,profile_photo');
+
+        if ($request->has('search')) {
+            $searchTerm = $request->input('search');
+            $query->whereHas('followerUser', function ($q) use ($searchTerm) {
+                $q->where('username', 'like', "%{$searchTerm}%")
+                ->orWhere('name', 'like', "%{$searchTerm}%");
+            });
+        }
+
+        $followers = $query->limit(50)
             ->get()
             ->pluck('followerUser');
 
         return response()->json($followers);
     }
 
-    public function fetchFollowing($creatorId)
+    public function fetchFollowing($creatorId, Request $request)
     {
-        $following = Following::where('cre_id', $creatorId)
-            ->with('followingUser:id,username,name,profile_photo')
-            ->limit(50) // limit following
+        $query = Following::where('cre_id', $creatorId)
+            ->with('followingUser:id,username,name,profile_photo');
+
+        if ($request->has('search')) {
+            $searchTerm = $request->input('search');
+            $query->whereHas('followingUser', function ($q) use ($searchTerm) {
+                $q->where('username', 'like', "%{$searchTerm}%")
+                ->orWhere('name', 'like', "%{$searchTerm}%");
+            });
+        }
+
+        $following = $query->limit(50)
             ->get()
             ->pluck('followingUser');
 

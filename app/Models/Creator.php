@@ -26,13 +26,14 @@ class Creator extends Authenticatable
         'otp_expires_at',
         'email_verified_at',
         'password',
-        'address',
-        'city',
+        // 'address',
+        // 'city',
         'profile_photo',
         'relationship_status',
         'relationship_status_since',
         'relationship_with',
         'bio',
+        'birthday',
     ];
 
     // Hidden fields for serialization (e.g., password should not be exposed in responses)

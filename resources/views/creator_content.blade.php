@@ -80,7 +80,7 @@
                 <input type="hidden" name="content_id" value="{{ $content->id }}">
                 @if($content->type == 'Media')
                      @if(str_contains($content->value, '.mp4'))
-                        <video class="absolute inset-0 w-full h-full object-cover rounded-md" muted autoplay loop playsinline>
+                        <video class="absolute inset-0 w-full h-full object-cover rounded-md" muted controls>
                             <source src="{{ asset('storage/' . $content->value) }}" type="video/mp4">
                         </video>
                     @else
@@ -99,7 +99,7 @@
                         <span class="like-text text-{{ in_array($content->id, $likedContents) ? 'green' : 'gray' }}-500">
                             {{ in_array($content->id, $likedContents) ? '♥' : '♡' }}
                         </span>
-                        <span class="like-count text-sm text-gray-600">
+                        <span class="like-count text-sm text-gray-600" data-content-id="{{ $content->id }}">
                             @php $likeCount = $content->likes()->count(); @endphp
                             {{ $likeCount }} {{ Str::plural('Like', $likeCount) }}
                         </span>
@@ -119,7 +119,8 @@
 </div>
 
 <script>
-    window.baseUrl = '{{ url('/') }}'; 
+    window.baseUrl = '{{ url('/') }}';
+    window.loggedInUserId = {{ Auth::id() }}; 
 </script>
 
 <div id="contentModal" style="display: none;" class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">

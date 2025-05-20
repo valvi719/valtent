@@ -17,6 +17,7 @@
                             <img src="{{ asset('storage/public/profile_photos/' . $creator->profile_photo) }}" alt="{{ $creator->name}}" class="w-full h-full object-cover">
                         </a>
                         <a href="/{{$creator->username}}" class="text-sm font-semibold text-center hover:underline">{{ $creator->username }}</a>
+                        
                         @auth
                             @if(auth()->id() !== $creator->id)
                                 <div class="mt-1">
@@ -57,7 +58,16 @@
                         @endif    
                         <p class="text-gray-500 text-sm">{{ $content->created_at->diffForHumans() }}</p>
                     </div>
-                    
+                    <button class="donate-btn px-4 py-1 rounded-full transition duration-300 bg-green-500 text-white hover:bg-green-600" 
+                        data-content-id="{{ $content->id }}" 
+                        data-recipient-id="{{ $content->cre_id }}" 
+                        onclick="openDonationModal({{ $content->id }},{{ $content->cre_id }})">
+                        Donate
+                    </button>
+                    <button class="donate-btn px-4 py-1 rounded-full transition duration-300 bg-green-500 text-white hover:bg-green-600"
+                        onclick="openDonatorsModal({{ $content->id }})">
+                        Donors
+                    </button>
                 </div>
             
                 <!-- Media Content (Image or Video) with Aspect Ratio 1:1 -->
@@ -110,6 +120,33 @@
             </div>
         @endforeach
     @endif
+</div>
+<!-- Donation Modal -->
+<div id="donationModal"  class="donot-display-donation-modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+    <div class="bg-white p-6 rounded-lg w-72 relative">
+        <h5 class="text-lg font-bold mb-2">Donate to Creator</h5>
+        <input type="number" id="donationAmount" class="form-control mt-2 w-full border rounded p-2" placeholder="Enter amount in ₹" min="1">
+        <input type="hidden" id="donationContentId">
+        <input type="hidden" id="recipient_id">
+        <button class="btn btn-success mt-3 w-full bg-green-500 text-white py-2 rounded hover:bg-green-600" onclick="submitDonation()">Donate</button>
+        <button class="btn btn-secondary mt-2 w-full bg-gray-300 text-black py-2 rounded hover:bg-gray-400" onclick="closeDonationModal()">Cancel</button>
+    </div>
+</div>
+<!-- Donors Modal -->
+<div id="donorsModal" class="donot-display-donors-modal" style="position:fixed; inset:0; background:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:1050;">
+
+    <div class="bg-white w-80 max-h-[90vh] rounded-lg shadow-lg overflow-hidden flex flex-col relative">
+        <div class="p-4 border-b flex justify-between items-center">
+            <h2 class="text-lg font-semibold">Top Donors</h2>
+            <button onclick="closeDonorsModal()" class="text-3xl font-bold text-gray-600 hover:text-black">&times;</button>
+        </div>
+        <div class="px-4 py-2">
+            <input type="text" id="donorSearch" placeholder="Search donors..." class="w-full p-2 border rounded">
+        </div>
+        <div id="donorsList" class="overflow-y-auto px-4 py-2 space-y-3 flex-1">
+            <!-- Donor items inserted here -->
+        </div>
+    </div>
 </div>
 <script>
     // AJAX script to handle like/unlike
@@ -215,7 +252,185 @@
             });
         });
     });
+
+    //Donation Process
+    //Donation Process
+        function openDonationModal(contentId, recipient_id) {
+        document.getElementById('donationContentId').value = contentId;
+        document.getElementById('recipient_id').value = recipient_id;
+        const donationModal = document.getElementById('donationModal');
+        donationModal.classList.remove('donot-display-donation-modal');
+        donationModal.classList.add('display-donation-modal');
+    }
+
+    function closeDonationModal() {
+        const donationModal = document.getElementById('donationModal');
+        donationModal.classList.remove('display-donation-modal');
+        donationModal.classList.add('donot-display-donation-modal');
+        document.getElementById('donationAmount').value = '';
+    }
+
+    // Prevent decimal point in donation amount
+        document.getElementById('donationAmount').addEventListener('input', function() {
+        this.value = this.value.replace(/[^0-9]/g, ''); // Only allow digits
+    });
+
+    function submitDonation() {
+        const amount = document.getElementById('donationAmount').value;
+        const contentId = document.getElementById('donationContentId').value;
+        const recipient_id = document.getElementById('recipient_id').value;
+
+        if (!amount || amount <= 0) {
+            alert('Please enter a valid amount.');
+            return;
+        }
+
+        fetch('/donate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                content_id: contentId,
+                amount: amount,
+                recipient_id:recipient_id,
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.error || 'Donation successful!');
+            closeDonationModal();
+        })
+        .catch(error => {
+            console.error('Donation error:', error);
+            alert(data.error ||'Something went wrong.');
+        });
+    }
 </script>
+<!-- Donation/Donors  code -->
+<script>
+    let currentContentId = null;
+
+    function openDonatorsModal(contentId) {
+        const modal = document.getElementById('donorsModal');
+        currentContentId = contentId;
+        const donationModal = document.getElementById('donorsModal');
+        donationModal.classList.remove('donot-display-donors-modal');
+        donationModal.classList.add('display-donors-modal');
+        fetchDonors(contentId, '');
+    }
+
+    function fetchDonors(contentId, search = '') {
+        fetch(`/content/${contentId}/donors/search?q=${encodeURIComponent(search)}`)
+            .then(res => res.json())
+            .then(data => {
+                const donorsList = document.getElementById('donorsList');
+                donorsList.innerHTML = '';
+
+                if (data.donors.length === 0) {
+                    donorsList.innerHTML = '<p class="text-center text-gray-500">No donors found.</p>';
+                } else {
+                    data.donors.forEach(donor => {
+                        const route = donor.id === data.auth_id ? `/me/${donor.username}` : `/${donor.username}`;
+
+                        // Create container div
+                        const donorItem = document.createElement('div');
+                        donorItem.classList.add('flex', 'items-center', 'justify-between', 'hover:bg-gray-100', 'p-2', 'rounded');
+
+                        // Left: profile + amount
+                        const leftSection = document.createElement('a');
+                        leftSection.href = route;
+                        leftSection.classList.add('flex', 'items-center', 'gap-3');
+                        leftSection.innerHTML = `
+                            <img src="/storage/public/profile_photos/${donor.profile_photo}" class="w-10 h-10 rounded-full object-cover">
+                            <div>
+                                <p class="font-semibold">${donor.username}</p>
+                                <p class="text-sm text-gray-600">₹${parseFloat(donor.total_amount).toFixed(2)}</p>
+                            </div>
+                        `;
+
+                        // Right: follow/unfollow or "You"
+                        let rightSection;
+                        if (donor.id === data.auth_id) {
+                            rightSection = document.createElement('span');
+                            rightSection.className = 'text-sm text-gray-500';
+                            rightSection.textContent = 'You';
+                        } else {
+                            const followBtn = document.createElement('button');
+                            followBtn.id = `follow-btn-${donor.id}`;
+                            followBtn.dataset.creatorId = donor.id;
+                            followBtn.className = `px-4 py-1 rounded-full transition duration-300 ${
+                                donor.is_following
+                                    ? 'bg-white text-black border border-black hover:bg-gray-100'
+                                    : 'bg-green-500 text-white hover:bg-green-600'
+                            }`;
+                            followBtn.textContent = donor.is_following ? 'Unfollow' : 'Follow';
+
+                            followBtn.addEventListener('click', function (e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+
+                                fetch(`/creator/${donor.id}/toggle-follow`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                        'Accept': 'application/json',
+                                    },
+                                })
+                                    .then(response => response.json())
+                                    .then(result => {
+                                        if (result.status === 'followed') {
+                                            followBtn.className = 'px-4 py-1 rounded-full transition duration-300 bg-white text-black border border-black hover:bg-gray-100';
+                                            followBtn.textContent = 'Unfollow';
+                                        } else if (result.status === 'unfollowed') {
+                                            followBtn.className = 'px-4 py-1 rounded-full transition duration-300 bg-green-500 text-white hover:bg-green-600';
+                                            followBtn.textContent = 'Follow';
+                                        }
+                                    })
+                                    .catch(error => console.error('Error:', error));
+
+                            });
+
+                            rightSection = followBtn;
+                        }
+
+                        donorItem.appendChild(leftSection);
+                        donorItem.appendChild(rightSection);
+                        donorsList.appendChild(donorItem);
+                    });
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Error loading donors.');
+            });
+    }
+
+    function closeDonorsModal() {
+        const donationModal = document.getElementById('donorsModal');
+        donationModal.classList.remove('display-donors-modal');
+        donationModal.classList.add('donot-display-donors-modal');
+        document.getElementById('donorSearch').value = '';
+    }
+
+    document.getElementById('donorSearch').addEventListener('input', function () {
+        if (currentContentId) {
+            fetchDonors(currentContentId, this.value);
+        }
+    });
+
+    // Outside click closes modal
+    document.addEventListener('click', function (e) {
+        const modal = document.getElementById('donorsModal');
+        const inner = modal.querySelector('div');
+        if (modal.style.display === 'flex' && !inner.contains(e.target)) {
+            closeDonorsModal();
+        }
+    });
+</script>
+<!-- end Donors -->
 <style>
         /* CSS to style the link as a button */
         .extract-link {
@@ -237,5 +452,34 @@
             background-color: darkgreen;  /* Darker green on hover */
             transform: scale(1.05);        /* Slightly enlarge the button on hover */
         }
+
+        /* #donationModal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        } */
+
+        .display-donation-modal{
+            display: flex;
+        }
+
+        .donot-display-donation-modal{
+            display: none;
+        }
+
+        .display-donors-modal{
+            display: flex;
+        }
+
+        .donot-display-donors-modal{
+            display: none;
+        }
+
+        
+
 </style>
 @endsection

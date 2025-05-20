@@ -3,6 +3,13 @@
 @extends('layouts.app')
 @section('title', 'Creator - Signup')
 @section('content')
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+    flatpickr("#birthday", {
+        maxDate: new Date().fp_incr(-4745), // ~13 years ago
+        dateFormat: "Y-m-d"
+    });
+</script>
 <body class="bg-gray-100 p-8">
     <div class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-lg">
         <!-- Logo Section -->
@@ -71,6 +78,12 @@
             </div>
 
             <div class="mb-4">
+                <label for="birthday" class="block text-sm font-medium text-gray-700">Birthday</label>
+                <input type="date" id="birthday" name="birthday" class="mt-1 block w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-600" required>
+                @error('birthday') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+            </div>
+
+            <!-- <div class="mb-4">
                 <label for="address" class="block text-sm font-medium text-gray-700">Address</label>
                 <input type="text" id="address" name="address" class="mt-1 block w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-600" required>
                 @error('address') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
@@ -80,7 +93,7 @@
                 <label for="city" class="block text-sm font-medium text-gray-700">City</label>
                 <input type="text" id="city" name="city" class="mt-1 block w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-600" required>
                 @error('city') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-            </div>
+            </div> -->
 
             <button type="submit" class="w-full bg-green-600 text-white p-3 rounded-md hover:bg-green-700 focus:outline-none">Sign Up</button>
             <div class="text-center mt-4">

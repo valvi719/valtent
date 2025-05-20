@@ -80,12 +80,19 @@
     <div class="bg-white w-full max-w-md rounded-lg p-4 shadow-xl">
         <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg font-semibold">Search Creator</h2>
-            <button id="closeSearchPopup" class="text-red-600 text-lg font-bold">&times;</button>
+            <button id="closeSearchPopup" class="mb-6 text-red-600 text-lg font-bold">&times;</button>
         </div>
-        <input type="text" id="creatorSearchInput" class="w-full border px-4 py-2 rounded focus:outline-none" placeholder="Search by username...">
+
+        <div class="relative">
+            <input type="text" id="creatorSearchInput" class="w-full border px-4 py-2 pr-10 rounded focus:outline-none" placeholder="Search by username...">
+            <button type="button" id="clearSearchIcon" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 hidden text-2xl">
+                &times;
+            </button>
+        </div>
         <ul id="creatorSearchResults" class="mt-4 space-y-2 max-h-60 overflow-y-auto"></ul>
     </div>
 </div>
+
 
 <script>
     window.baseUrl = '{{ url('/') }}'; 
@@ -182,6 +189,23 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Search error:', err);
         }
     });
+
+    const clearSearchIcon = document.getElementById('clearSearchIcon');
+
+    searchInput?.addEventListener('input', function () {
+        if (this.value.length > 0) {
+            clearSearchIcon.classList.remove('hidden');
+        } else {
+            clearSearchIcon.classList.add('hidden');
+        }
+    });
+
+    clearSearchIcon?.addEventListener('click', () => {
+        searchInput.value = '';
+        searchInput.focus();
+        searchResults.innerHTML = '';
+        clearSearchIcon.classList.add('hidden');
+    });
 });
 // Close search popup on outside click
 document.addEventListener('click', function (e) {
@@ -213,5 +237,8 @@ document.addEventListener('click', function (e) {
         main {
             padding-left: 0;
         }
+    }
+    #closeSearchPopup{
+    font-size: 28px;
     }
 </style>

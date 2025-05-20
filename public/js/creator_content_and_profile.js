@@ -4,63 +4,61 @@ window.addEventListener('load', function () {
 });
 
 function openModal(element) {
-        const contentId = element.querySelector('input[name="content_id"]').value;
-        const modal = document.getElementById('contentModal');
-        modal.style.display = 'flex';
-    
-        fetch(`/modalcontent/${contentId}`)
-            .then(response => response.json())
-            .then(data => {
-                const modalContent = document.getElementById('modalContent');
-                const creatorUsernameElement = document.getElementById('creatorUsername');
-                const creatorProfilePhotoElement = document.getElementById('creatorProfilePhoto');
-                const moreMenu = document.getElementById('moreMenu');
-                const moreOptionsButton = document.getElementById('moreOptions');
-    
-                modalContent.innerHTML = '';
-                creatorUsernameElement.textContent = data.creator_username;
-                creatorProfilePhotoElement.src = data.creator_profile_photo;
-    
-                // Reset and add fresh event listener
-                if (moreMenu && moreOptionsButton) {
-                    moreOptionsButton.onclick = (e) => {
-                        e.stopPropagation();
-                        moreMenu.classList.toggle('hidden');
-                    };
-                
-                    document.onclick = () => {
-                        moreMenu.classList.add('hidden');
-                    };
-                
-                    moreMenu.onclick = (e) => {
-                        e.stopPropagation();
-                    };
-                }   
+    const contentId = element.querySelector('input[name="content_id"]').value;
+    const modal = document.getElementById('contentModal');
+    modal.style.display = 'flex';
 
-    
-                let mediaHtml = '';
-    
-                if (data.type === 'Media') {
-                    if (data.value.includes('.mp4')) {
-                            mediaHtml = `
+    fetch(`/modalcontent/${contentId}`)
+        .then(response => response.json())
+        .then(data => {
+            const modalContent = document.getElementById('modalContent');
+            const creatorUsernameElement = document.getElementById('creatorUsername');
+            const creatorProfilePhotoElement = document.getElementById('creatorProfilePhoto');
+            const moreMenu = document.getElementById('moreMenu');
+            const moreOptionsButton = document.getElementById('moreOptions');
+
+            modalContent.innerHTML = '';
+            creatorUsernameElement.textContent = data.creator_username;
+            creatorProfilePhotoElement.src = data.creator_profile_photo;
+
+            // Reset and add fresh event listener
+            if (moreMenu && moreOptionsButton) {
+                moreOptionsButton.onclick = (e) => {
+                    e.stopPropagation();
+                    moreMenu.classList.toggle('hidden');
+                };
+
+                document.onclick = () => {
+                    moreMenu.classList.add('hidden');
+                };
+
+                moreMenu.onclick = (e) => {
+                    e.stopPropagation();
+                };
+            }
+
+            let mediaHtml = '';
+
+            if (data.type === 'Media') {
+                if (data.value.includes('.mp4')) {
+                    mediaHtml = `
                             <video class="w-full max-h-[300px] object-contain rounded-lg" controls>
                                 <source src="${data.url}" type="video/mp4">
                             </video>`;
-    
-                    } else {
-                        mediaHtml = `
-                            <img class="w-full max-h-[300px] object-contain rounded-lg" src="${data.url}" alt="${data.name}">
-                        `;
-                    }
-                } else {
-                    mediaHtml = `
-                        <div class="w-full h-48 bg-gray-300 flex items-center justify-center rounded-lg">
-                            <span class="text-white">NFT</span>
-                        </div>
-                    `;
-                }
-    
-                modalContent.innerHTML = `
+                } else {
+                    mediaHtml = `
+                                <img class="w-full max-h-[300px] object-contain rounded-lg" src="${data.url}" alt="${data.name}">
+                            `;
+                }
+            } else {
+                mediaHtml = `
+                            <div class="w-full h-48 bg-gray-300 flex items-center justify-center rounded-lg">
+                                <span class="text-white">NFT</span>
+                            </div>
+                        `;
+            }
+
+            modalContent.innerHTML = `
                     <div class="space-y-2 text-left">
                         ${mediaHtml}
                         <div class="flex items-center gap-2 mt-2">
@@ -78,24 +76,30 @@ function openModal(element) {
                     </div>
                 `;
 
-    
-                document.getElementById('deleteContent').setAttribute('data-content-id', data.id);
-            })
-            .catch(error => {
-                console.error('Error fetching content:', error);
-            });
+
+            document.getElementById('deleteContent').setAttribute('data-content-id', data.id);
+        })
+        .catch(error => {
+            console.error('Error fetching content:', error);
+        });
 }
 
 document.addEventListener('DOMContentLoaded', function () {
     document.addEventListener('click', function (e) {
         // Handle like/unlike button clicks
         if (e.target.closest('.modal-like-btn') || e.target.closest('.like-btn')) {
+            
             const button = e.target.closest('.modal-like-btn') || e.target.closest('.like-btn');
             const contentId = button.getAttribute('data-content-id');
             const likeText = button.querySelector('.like-text');
-            const likeCount = button.querySelector('.like-count');
+            let likeCount;
+            if (button.classList.contains('modal-like-btn')) {
+                likeCount = document.querySelector('#modalContent .like-count');
+            } else {
+                likeCount = document.querySelector(`.like-count[data-content-id="${contentId}"]`);
+            }
 
-    
+
             fetch(`/content/${contentId}/like`, {
                 method: 'POST',
                 headers: {
@@ -104,51 +108,54 @@ document.addEventListener('DOMContentLoaded', function () {
                 },
                 body: JSON.stringify({}),
             })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(errorData => {
-                        throw new Error(errorData.error || 'An unexpected error occurred.');
-                    });
-                }
-                return response.json();
-            })
-            .then(data => {
-                const isLiked = data.message === 'liked';
-                const countText = data.like_count === 0
-                    ? ''
-                    : data.like_count === 1
-                        ? '1 Like'
-                        : `${data.like_count} Likes`;
-    
-                // Update current button (modal or main)
-                if (likeText) {
-                    likeText.textContent = isLiked ? '♥' : '♡';
-                    likeText.className = `like-text text-${isLiked ? 'green' : 'gray'}-500`;
-                }
-                
-                $('#modalContent .like-count').text(countText);                
-                 
-                // Update corresponding other button (main or modal)
-                const otherSelector = button.classList.contains('modal-like-btn') ? '.like-btn' : '.modal-like-btn';
-                const otherButton = document.querySelector(`${otherSelector}[data-content-id="${contentId}"]`);
-                if (otherButton) {
-                    const otherLikeText = otherButton.querySelector('.like-text');
-                    const otherLikeCount = otherButton.querySelector('.like-count');
-    
-                    if (otherLikeText) {
-                        otherLikeText.textContent = isLiked ? '♥' : '♡';
-                        otherLikeText.className = `like-text text-${isLiked ? 'green' : 'gray'}-500`;
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(errorData => {
+                            throw new Error(errorData.error || 'An unexpected error occurred.');
+                        });
                     }
-                    if (otherLikeCount) {
-                        otherLikeCount.textContent = countText;
+                    return response.json();
+                })
+                .then(data => {
+                    const isLiked = data.message === 'liked';
+                    const countText = data.like_count === 0
+                        ? ''
+                        : data.like_count === 1
+                            ? '1 Like'
+                            : `${data.like_count} Likes`;
+
+                    // Update current button (modal or main)
+                    if (likeText) {
+                        likeText.textContent = isLiked ? '♥' : '♡';
+                        likeText.className = `like-text text-${isLiked ? 'green' : 'gray'}-500`;
                     }
-                }
-            })
-            .catch(error => {
-                alert(error.message);
-            });
+
+                    $('#modalContent .like-count').text(countText);
+                    $(e.target.closest('.like-btn')).find('.like-count').text(countText);
+
+                    
+
+                    // Update corresponding other button (main or modal)
+                    const otherSelector = button.classList.contains('modal-like-btn') ? '.like-btn' : '.modal-like-btn';
+                    const otherButton = document.querySelector(`${otherSelector}[data-content-id="${contentId}"]`);
+                    if (otherButton) {
+                        const otherLikeText = otherButton.querySelector('.like-text');
+                        const otherLikeCount = document.querySelector(`.like-count[data-content-id="${contentId}"]`);
+
+                        if (otherLikeText) {
+                            otherLikeText.textContent = isLiked ? '♥' : '♡';
+                            otherLikeText.className = `like-text text-${isLiked ? 'green' : 'gray'}-500`;
+                        }
+                        if (otherLikeCount) {
+                            otherLikeCount.textContent = countText;
+                        }
+                    }
+                })
+                .catch(error => {
+                    alert(error.message);
+                });
         }
-    
+
         // Handle modal close button
         if (e.target.id === 'closeModal') {
             document.getElementById('contentModal').style.display = 'none';
@@ -165,7 +172,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (e.target === followModal) {
             followModal.style.display = 'none';
         }
-        
+
         // Handle more options menu toggle
         if (e.target.id === 'moreOptions') {
             const menu = document.getElementById('moreMenu');
@@ -176,11 +183,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 menu.classList.add('hidden');
             }
         }
-    
+
         // Handle content deletion
         if (e.target.id === 'deleteContent') {
             const contentId = e.target.getAttribute('data-content-id');
-    
+
             fetch(`/content/${contentId}`, {
                 method: 'DELETE',
                 headers: {
@@ -188,13 +195,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     'Accept': 'application/json',
                 },
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.message) {
-                    location.reload();
-                }
-            })
-            .catch(error => console.error('Error:', error));
+                .then(response => response.json())
+                .then(data => {
+                    if (data.message) {
+                        location.reload();
+                    }
+                })
+                .catch(error => console.error('Error:', error));
         }
     });
 
@@ -209,6 +216,9 @@ function openFollowingModal(creatorId) {
     openFollowModal(creatorId, 'following');
 }
 
+let currentFollowType = '';
+let currentCreatorId = '';
+
 function openFollowModal(creatorId, type) {
     const modal = document.getElementById('followModal');
     modal.style.display = 'flex';
@@ -216,35 +226,91 @@ function openFollowModal(creatorId, type) {
     const title = document.getElementById('followModalTitle');
     title.textContent = type.charAt(0).toUpperCase() + type.slice(1);
 
-    fetch(`/creator/${creatorId}/${type}`) // new route
+    const modalContent = document.getElementById('followModalContent');
+    modalContent.innerHTML = `
+        <div class="p-3">
+            <div class="relative">
+                <input type="text" id="followSearchInput" onkeyup="searchFollowersFollowing()" class="w-full pl-3 pr-10 py-2 border rounded-md focus:outline-none focus:ring focus:border-blue-300" placeholder="Search ${type}">
+                <button id="clearFollowSearch" onclick="clearFollowSearch()" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 cursor-pointer text-2xl hidden">&times;</button>
+            </div>
+            <div id="followSearchResult" class="max-h-72 overflow-y-auto mt-2">
+                </div>
+            <div id="initialFollowList" class="max-h-72 overflow-y-auto mt-2">
+                </div>
+        </div>
+    `;
+
+    currentFollowType = type;
+    currentCreatorId = creatorId;
+    fetchFollowList(creatorId, type);
+}
+
+function closeFollowModal() {
+    document.getElementById('followModal').style.display = 'none';
+    document.getElementById('followSearchInput').value = ''; // Clear search input
+    document.getElementById('followSearchResult').innerHTML = ''; // Clear search results
+    document.getElementById('initialFollowList').innerHTML = ''; // Clear initial list
+}
+
+function fetchFollowList(creatorId, type, searchTerm = '') {
+    let url = `/creator/${creatorId}/${type}`;
+    if (searchTerm) {
+        url += `?search=${searchTerm}`;
+    }
+
+    const initialFollowList = document.getElementById('initialFollowList');
+    const followSearchResult = document.getElementById('followSearchResult');
+    const clearSearchButton = document.getElementById('clearFollowSearch');
+
+    if (!searchTerm) {
+        followSearchResult.innerHTML = '';
+        initialFollowList.innerHTML = '<p class="text-center text-gray-500">Loading...</p>';
+        clearSearchButton.classList.add('hidden');
+    } else {
+        initialFollowList.innerHTML = '';
+        followSearchResult.innerHTML = '<p class="text-center text-gray-500">Searching...</p>';
+        clearSearchButton.classList.remove('hidden');
+    }
+
+
+    fetch(url)
         .then(response => response.json())
         .then(data => {
-            const container = document.getElementById('followModalContent');
+            const container = searchTerm ? followSearchResult : initialFollowList;
             container.innerHTML = '';
 
             if (data.length === 0) {
-                container.innerHTML = `<p class="text-center text-gray-500">No ${type} found.</p>`;
+                container.innerHTML = `<p class="text-center text-gray-500">No ${type} found${searchTerm ? ' matching your search' : ''}.</p>`;
                 return;
             }
-
+            
             data.forEach(user => {
+                const isCurrentUser = user.id === window.loggedInUserId;
+                const profileLink = isCurrentUser ? `${window.baseUrl}/me/${user.username}` : `${window.baseUrl}/${user.username}`;
+
                 const userHtml = `
-                    <div class="flex items-center space-x-4 p-2 hover:bg-gray-100 rounded">
-                        <img src="${window.baseUrl}/storage/public/profile_photos/${user.profile_photo}" class="w-10 h-10 rounded-full object-cover">
-                        <div>
-                            <div class="font-semibold">${user.username}</div>
-                            <div class="text-gray-500 text-sm">${user.name}</div>
-                        </div>
-                    </div>
+                    <a href="${profileLink}" class="flex items-center space-x-3 hover:bg-gray-100 p-2 rounded">
+                        <img src="${window.baseUrl}/storage/public/profile_photos/${user.profile_photo}" alt="${user.username}" class="w-8 h-8 rounded-full object-cover">
+                        <span class="text-sm font-medium">${user.username}</span>
+                    </a>
+                    
                 `;
                 container.innerHTML += userHtml;
             });
         })
         .catch(error => {
             console.error('Error fetching follow data:', error);
+            const container = searchTerm ? followSearchResult : initialFollowList;
+            container.innerHTML = '<p class="text-center text-red-500">Error loading data.</p>';
         });
 }
 
-function closeFollowModal() {
-    document.getElementById('followModal').style.display = 'none';
+function searchFollowersFollowing() {
+    const searchTerm = document.getElementById('followSearchInput').value.trim();
+    fetchFollowList(currentCreatorId, currentFollowType, searchTerm);
 }
+
+function clearFollowSearch() {
+    document.getElementById('followSearchInput').value = '';
+    fetchFollowList(currentCreatorId, currentFollowType);
+}   

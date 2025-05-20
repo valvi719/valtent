@@ -10,7 +10,7 @@ return new class extends Migration {
         Schema::create('conbank', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('cre_id');
-            $table->decimal('balance', 15, 2)->default(0);
+            $table->decimal('balance', 15, 2)->default(0)->nullable();
             $table->decimal('deposits', 15, 2)->default(0);
             $table->decimal('withdrawals', 15, 2)->default(0);
             $table->decimal('loans', 15, 2)->default(0);

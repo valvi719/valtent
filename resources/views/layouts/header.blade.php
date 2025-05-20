@@ -9,6 +9,8 @@
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <link rel="stylesheet" href="{{ asset('css/wallet.css') }}">
     <link rel="stylesheet" href="{{ asset('css/creator_content_and_profile.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
 
     <div class="max-w-7xl mx-auto px-4 flex justify-between items-center">
         <!-- Logo -->

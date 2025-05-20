@@ -109,6 +109,7 @@
 
 <script>
     window.baseUrl = '{{ url('/') }}'; 
+    window.loggedInUserId = {{ Auth::id() }};
 </script>
 
 <!-- Modal Structure -->
@@ -159,15 +160,28 @@
                 })
                 .then(response => response.json())
                 .then(data => {
+                    const followersBtn = document.querySelector('button[onclick^="openFollowersModal"]');
+
+                    // Get current count from text like: "123 followers"
+                    const followersText = followersBtn?.innerText.trim();
+                    let [countStr] = followersText?.split(' ') ?? ['0'];
+                    let currentCount = parseInt(countStr) || 0;
+
                     if (data.status === 'followed') {
                         button.className = 'px-4 py-1 rounded-full transition duration-300 bg-white text-black border border-black hover:bg-gray-100';
                         button.innerText = 'Unfollow';
+                        currentCount += 1;
                     } else if (data.status === 'unfollowed') {
                         button.className = 'px-4 py-1 rounded-full transition duration-300 bg-green-500 text-white hover:bg-green-600';
                         button.innerText = 'Follow';
+                        currentCount = Math.max(0, currentCount - 1);
+                    }
+
+                    if (followersBtn) {
+                        followersBtn.innerHTML = `<strong>${currentCount}</strong> followers`;
                     }
                 })
-                .catch(error => console.error('Error:', error));
+                .catch(error => console.error('Follow toggle error:', error));
             });
         }
     });

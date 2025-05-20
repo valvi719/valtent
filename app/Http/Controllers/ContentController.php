@@ -14,6 +14,7 @@ use App\Models\ContentLike;
 use App\Models\Creator;
 use App\Models\Follower;
 use App\Models\Following;
+use App\Models\Donator;
 
 class ContentController extends Controller
 {
@@ -176,12 +177,12 @@ class ContentController extends Controller
             }
 
             // Fetch the conbank record for the user
-            $conbank = Conbank::where('cre_id', $creatorId)->first();
+            // $conbank = Conbank::where('cre_id', $creatorId)->first();
 
             // Block like/unlike if conbank is missing or balance is null
-            if (!$conbank || is_null($conbank->balance)) {
-                return response()->json(['error' => 'Please add balance to your wallet.'], 403);
-            }
+            // if (!$conbank || is_null($conbank->balance)) {
+            //     return response()->json(['error' => 'Please add balance to your wallet.'], 403);
+            // }
 
             // Check if the user has already liked the content
             $existingLike = ContentLike::where('con_id', $contentId)
@@ -192,7 +193,7 @@ class ContentController extends Controller
                 // Unlike
                 $existingLike->delete();
                 $message = 'unliked';
-                $conbank->balance += 1;
+                // $conbank->balance += 1;
             } else {
                 // Like
                 ContentLike::create([
@@ -201,10 +202,10 @@ class ContentController extends Controller
                     'name' => 'Like',
                 ]);
                 $message = 'liked';
-                $conbank->balance -= 1;
+                // $conbank->balance -= 1;
             }
 
-            $conbank->save();
+            // $conbank->save();
 
             // Return the response
             return response()->json([
@@ -293,5 +294,70 @@ class ContentController extends Controller
             return response()->json(['status' => 'followed']);
         }
 
+    }
+
+    //Donation 
+    public function donate(Request $request)
+    {
+        $request->validate([
+            'recipient_id' => 'required|exists:creators,id',
+            'amount' => 'required|numeric|min:1',
+        ]);
+
+        $donatorId = auth()->id();
+
+        // Fetch the conbank record for the user
+        $conbank = Conbank::where('cre_id', $donatorId)->first();
+
+        // Block donation if conbank is missing or balance is null
+        if (!$conbank || is_null($conbank->balance)) {
+            return response()->json(['error' => 'Please add balance to your wallet.'], 403);
+        }
+        $conbank->balance -= $request->amount;
+        $conbank->save();
+
+        // Save donation
+        Donator::create([
+            'donator_id' => $donatorId,
+            'recipient_id' => $request->recipient_id,
+            'content_id' => $request->content_id,
+            'amount' => $request->amount,
+        ]);
+
+        // Add to recipient's balance
+        $bank = Conbank::firstOrCreate(['cre_id' => $request->recipient_id]);
+        $bank->balance += $request->amount;
+        $bank->save();
+        
+        return response()->json(['success' => true]);
+    }
+
+    public function searchDonors(Request $request, $id)
+    {
+        $search = $request->input('q');
+        $authId = auth()->id();
+        $followingIds = Follower::where('follower', $authId)->pluck('cre_id')->toArray();
+
+        $donors = \DB::table('donators')
+            ->where('content_id', $id)
+            ->join('creators', 'donators.donator_id', '=', 'creators.id')
+            ->select('creators.id', 'creators.username', 'creators.name', 'creators.profile_photo', \DB::raw('SUM(donators.amount) as total_amount'))
+            ->when($search, function ($query, $search) {
+                return $query->where(function ($q) use ($search) {
+                    $q->where('creators.username', 'like', '%' . $search . '%')
+                    ->orWhere('creators.name', 'like', '%' . $search . '%');
+                });
+            })
+            ->groupBy('creators.id', 'creators.username', 'creators.name', 'creators.profile_photo')
+            ->orderByDesc('total_amount')
+            ->get()->map(function ($donor) use ($followingIds) {
+                $donor->is_following = in_array($donor->id, $followingIds);
+                return $donor;
+            });
+
+        return response()->json([
+            'donors' => $donors,
+            'auth_id' => $authId,
+        ]);
     }
 }
