@@ -8,6 +8,7 @@ use App\Http\Controllers\RazorpayController;
 use App\Http\Controllers\InstagramController;
 use Illuminate\Http\Request;
 
+
 // Route::get('/', function () {
 //     return view('welcome');
 // });
@@ -57,6 +58,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/content/{contentId}/extract', [ContentController::class, 'extract'])->name('content.extract');
     Route::post('/donate', [ContentController::class, 'donate']);
     Route::get('/content/{id}/donors/search', [ContentController::class, 'searchDonors']);
+    Route::post('/moderation-callback', [ContentController::class, 'handle'])->name('moderation.callback');
 
 
     // Route for viewing content

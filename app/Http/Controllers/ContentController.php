@@ -9,7 +9,11 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use FFMpeg\FFMpeg;
+use FFMpeg\Coordinate\TimeCode;
+use FFMpeg\FFProbe;
 use App\Models\ContentLike;
 use App\Models\Creator;
 use App\Models\Follower;
@@ -20,74 +24,129 @@ class ContentController extends Controller
 {
     public function create($id)
     {
-    
+        
         return view('content_create',compact('id'));
         
     }
+    // video upload is only working with thumbnail moderation.make changes when the website is live.
     public function store(Request $request, $id)
     {
-        // Decrypt the creator ID
         $cre_id = Crypt::decrypt($id);
 
-        // Validate the request data
         $validator = Content::validate($request->all());
-        
         if ($validator->fails()) {
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
-        // Handle file upload if Media type is selected
         $value = null;
-        $duration = null;  // Initialize duration variable
-        
-        // Check if file is provided
+        $duration = null;
+        $moderation_id = null;
+
         if ($request->type === 'Media' && $request->hasFile('value')) {
             $file = $request->file('value');
-            
-            // Get MIME type and extension of the uploaded file
             $mimeType = $file->getMimeType();
-            $fileExtension = $file->getClientOriginalExtension();
-            
-            // Define allowed video MIME types and file extensions
+            $fileExtension = strtolower($file->getClientOriginalExtension());
+
             $allowedMimeTypes = ['video/mp4', 'video/avi', 'video/mkv', 'video/webm', 'video/x-msvideo', 'video/quicktime'];
             $allowedExtensions = ['mp4', 'avi', 'mkv', 'webm', 'mov'];
 
-            // Check if the file is a video based on MIME type or extension
-            $isVideo = in_array($mimeType, $allowedMimeTypes) || in_array(strtolower($fileExtension), $allowedExtensions);
+            $isVideo = in_array($mimeType, $allowedMimeTypes) || in_array($fileExtension, $allowedExtensions);
+
+            $filePath = $file->store('media', 'public');
+            $fullPath = public_path('storage/' . $filePath);
+            $publicUrl = asset('storage/' . $filePath);
+
+            $api_user = env('SIGHTENGINE_USER');
+            $api_secret = env('SIGHTENGINE_SECRET');
 
             if ($isVideo) {
-                // Store video file in the "public/media" directory
-                $value = $file->store('media', 'public'); 
-
-                // Use FFMpeg to get the video duration
-                $video = FFMpeg::create([
-                    'ffmpeg.binaries'  => 'C:\\ffmpeg-7.1-essentials_build\\bin\\ffmpeg.exe',   // Full path to ffmpeg binary
-                    'ffprobe.binaries' => 'C:\\ffmpeg-7.1-essentials_build\\bin\\ffprobe.exe',  // Full path to ffprobe binary
-                    'timeout'           => 3600,                             // Timeout for processes
-                    'ffmpeg.threads'    => 12                                // Number of threads to use
+                $ffmpeg = FFMpeg::create([
+                    'ffmpeg.binaries'  => 'C:\\ffmpeg-7.1-essentials_build\\bin\\ffmpeg.exe',
+                    'ffprobe.binaries' => 'C:\\ffmpeg-7.1-essentials_build\\bin\\ffprobe.exe',
+                    'timeout'          => 3600,
+                    'ffmpeg.threads'   => 12
                 ]);
 
-                $videoFile = public_path('storage/' . $value); // Get the full path to the video
-                $videoDuration = $video->open($videoFile)->getFormat()->get('duration');  // Get the video duration
+                $video = $ffmpeg->open($fullPath);
+                $videoDuration = $video->getFormat()->get('duration');
+                $duration = round($videoDuration);
 
-                $duration = round($videoDuration); // Round it to the nearest whole number (in seconds)
+                $callbackUrl = route('moderation.callback');
+
+                $response = Http::asForm()->post('https://api.sightengine.com/1.0/video/check.json', [
+                    'models' => 'nudity,wad',
+                    'api_user' => $api_user,
+                    'api_secret' => $api_secret,
+                    'media_url' => $publicUrl,
+                    'callback_url' => $callbackUrl
+                ]);
+
+                if ($response->successful() && isset($response['request']['id'])) {
+                    $moderation_id = $response['request']['id'];
+                } else {
+                    // Fallback to image-based moderation using frame at 1s
+                    $thumbnailName = Str::random(40) . '.jpg';
+                    $thumbnailPath = storage_path('app/public/media/' . $thumbnailName);
+
+                    try {
+                        $video->frame(TimeCode::fromSeconds(1))->save($thumbnailPath);
+
+                        $thumbResponse = Http::asMultipart()->attach(
+                            'media', fopen($thumbnailPath, 'r'), $thumbnailName
+                        )->post("https://api.sightengine.com/1.0/check.json", [
+                            ['name' => 'models', 'contents' => 'nudity,wad'],
+                            ['name' => 'api_user', 'contents' => $api_user],
+                            ['name' => 'api_secret', 'contents' => $api_secret]
+                        ]);
+
+                        if (
+                            $thumbResponse->failed() ||
+                            ($thumbResponse['nudity']['raw'] ?? 0) > 0.5
+                        ) {
+                            Storage::disk('public')->delete($filePath);
+                            Storage::delete('public/media/' . $thumbnailName);
+                            return redirect()->back()->with('error', 'Nudity detected in video thumbnail. Upload blocked.');
+                        }
+
+                        Storage::delete('public/media/' . $thumbnailName); // cleanup
+                    } catch (\Exception $e) {
+                        Storage::disk('public')->delete($filePath);
+                        return redirect()->back()->with('error', 'Video moderation failed. Please try again.');
+                    }
+                }
             } else {
-                // If the file is not a video, treat it as a non-video file (like an image)
-                $value = $file->store('media', 'public');  // Store non-video media in the same directory
+                // Image moderation
+                $response = Http::asMultipart()->attach(
+                    'media', fopen($fullPath, 'r'), $file->getClientOriginalName()
+                )->post("https://api.sightengine.com/1.0/check.json", [
+                    ['name' => 'models', 'contents' => 'nudity,wad'],
+                    ['name' => 'api_user', 'contents' => $api_user],
+                    ['name' => 'api_secret', 'contents' => $api_secret]
+                ]);
+
+                if ($response->failed() || ($response['nudity']['raw'] ?? 0) > 0.5) {
+                    Storage::disk('public')->delete($filePath);
+                    return redirect()->back()->with('error', 'Nudity detected in image. Upload blocked.');
+                }
             }
+
+            $value = $filePath;
         }
 
-        // Create the Content and save to the database
         Content::create([
             'name' => $request->name,
             'type' => $request->type,
-            'value' => $value, // Store the file path
-            'cre_id'=> $cre_id,
-            'duration' => $duration,  // Store the video duration if it's a video, null otherwise
+            'value' => $value,
+            'cre_id' => $cre_id,
+            'duration' => $duration,
+            'moderation_id' => $moderation_id,
+            'moderation_status' => $moderation_id ? 'pending' : 'approved'
         ]);
 
-        return redirect()->route('content.create',['id' => $id])->with('success', 'Content created successfully!');
+        return redirect()->route('content.create', ['id' => $id])
+            ->with('success', 'Content created successfully! ' . ($moderation_id ? 'Awaiting moderation.' : ''));
     }
+
     public function index($username)
     {
         
@@ -101,13 +160,18 @@ class ContentController extends Controller
 
         $likedContents = ContentLike::where('liked_by', Auth::id())->pluck('con_id')->toArray();
 
-        return view('creator_content', compact('creator','contents', 'creatorId', 'likedContents'));
+        $badge = getDonationBadgeStyle();
+
+        return view('creator_content', compact('creator','contents', 'creatorId', 'likedContents','badge'));
     }
     public function modalContent($content_id)
     {
         $content = Content::findOrFail($content_id);
         $likedContents = ContentLike::where('liked_by', Auth::id())->pluck('con_id')->toArray();
         $creator = $content->creator; // Access the creator relationship
+
+        $badgeColor = getDonationBadgeStyle($creator->id);
+
         // Prepare response data (could include other data as needed)
         return response()->json([
             'id' => $content->id,
@@ -119,6 +183,7 @@ class ContentController extends Controller
             'like_count' => $content->likes()->count(),
             'creator_username' => $creator->username, // Pass creator username
             'creator_profile_photo' => asset('storage/public/profile_photos/' . $creator->profile_photo), // Pass profile photo URL
+            'badge_color' => $badgeColor,
         ]);
         
     }
@@ -238,6 +303,8 @@ class ContentController extends Controller
 
         $likedContents = [];
 
+        $badge = getDonationBadgeStyle($creator->id);
+
         if (auth()->check()) {
             // Get all content IDs that the authenticated user has liked
             $likedContents = ContentLike::where('liked_by', auth()->id())
@@ -254,7 +321,8 @@ class ContentController extends Controller
             'creator' => $creator,
             'contents' => $contents,
             'likedContents' => $likedContents,
-            'isFollowing' => $isFollowing
+            'isFollowing' => $isFollowing,
+            'badge' => $badge,
         ]);
     }
 
@@ -352,6 +420,10 @@ class ContentController extends Controller
             ->orderByDesc('total_amount')
             ->get()->map(function ($donor) use ($followingIds) {
                 $donor->is_following = in_array($donor->id, $followingIds);
+                $badge = getDonationBadgeStyle($donor->id); // Your helper function
+                $donor->badge_color = $badge['color'] ?? null;
+                $donor->badge_label = $badge['label'] ?? null;
+
                 return $donor;
             });
 
@@ -360,4 +432,32 @@ class ContentController extends Controller
             'auth_id' => $authId,
         ]);
     }
+
+    public function handle(Request $request)
+    {
+        $data = $request->all();
+        $status = $data['summary']['action'] ?? null;
+        $nudeScore = $data['nudity']['raw'] ?? 0;
+        $uri = $data['media']['uri'] ?? null;
+
+        if (!$uri) {
+            \Log::warning('Moderation callback: Missing media URI.');
+            return response()->json(['message' => 'Invalid callback'], 400);
+        }
+
+        // Match content using partial file path from URI
+        $filename = basename(parse_url($uri, PHP_URL_PATH));
+        $content = Content::where('value', 'like', "%$filename")->first();
+
+        if (!$content) {
+            \Log::warning('Moderation callback: Content not found for URI ' . $uri);
+            return response()->json(['message' => 'Content not found'], 404);
+        }
+
+        $content->moderation_status = $nudeScore > 0.5 ? 'rejected' : 'approved';
+        $content->save();
+
+        return response()->json(['message' => 'Moderation processed'], 200);
+    }
+
 }

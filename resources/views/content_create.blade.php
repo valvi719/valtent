@@ -13,6 +13,11 @@
                     {{ session('success') }}
                 </div>
             @endif
+            @if (session('error'))
+                <div class="text-red-600 mb-4 p-2 bg-red-100 rounded">
+                    {{ session('error') }}
+                </div>
+            @endif
 
             @if ($errors->any())
                 <div class="text-red-600 mb-4 p-2 bg-red-100 rounded">
@@ -108,7 +113,7 @@
 
     fileInput.addEventListener('change', function(event) {
         const file = event.target.files[0];
-        
+
         if (file) {
             // Check file type
             if (file.type !== 'video/mp4' && !file.type.startsWith('image/')) {
@@ -117,18 +122,46 @@
                 return;
             }
 
-            // Removed file size check (now accepts any file size)
-            // If you want to set a different limit, you can modify fileSizeLimit as needed
+            // File size check (if needed)
             if (file.size > fileSizeLimit) {
                 alert('File size exceeds the limit');
                 fileInput.value = ''; // Reset file input
                 return;
             }
 
-            // Start the upload process
-            uploadFile(file);
+            // If video, validate duration before uploading
+            if (file.type === 'video/mp4') {
+                const video = document.createElement('video');
+                video.preload = 'metadata';
+
+                video.onloadedmetadata = function () {
+                    window.URL.revokeObjectURL(video.src); // Free memory
+                    const duration = video.duration;
+                    const maxDuration = 90; // 90 seconds
+
+                    if (duration > maxDuration) {
+                        alert(`Video duration exceeds ${maxDuration} seconds. Please upload a shorter video.`);
+                        fileInput.value = ''; // Reset input
+                        return;
+                    }
+
+                    // Valid duration
+                    uploadFile(file);
+                };
+
+                video.onerror = function () {
+                    alert('Error reading video metadata. Please try another file.');
+                    fileInput.value = '';
+                };
+
+                video.src = URL.createObjectURL(file);
+            } else {
+                // If image, upload directly
+                uploadFile(file);
+            }
         }
     });
+
 
     function uploadFile(file) {
         const formData = new FormData();

@@ -300,6 +300,8 @@ class CreatorController extends Controller
             ->limit(10)
             ->get()
             ->map(function ($creator) use ($loggedInUserId) {
+                $badge = getDonationBadgeStyle($creator->id);
+
                 return [
                     'id' => $creator->id,
                     'username' => $creator->username,
@@ -307,6 +309,9 @@ class CreatorController extends Controller
                     'profile_photo' => $creator->profile_photo
                         ? asset('storage/public/profile_photos/' . $creator->profile_photo)
                         : 'https://ui-avatars.com/api/?name=' . urlencode($creator->username) . '&background=random&color=fff',
+                    'badge_color' => $badge['color'] ?? null,
+                    'badge_label' => $badge['label'] ?? null,
+                    'badge_amount' => $badge['amount'] ?? 0,    
                         
                 ];
             });
@@ -346,8 +351,24 @@ class CreatorController extends Controller
         $followers = $query->limit(50)
             ->get()
             ->pluck('followerUser');
+        $suggested = [];
 
-        return response()->json($followers);
+        // Only send suggestions if there's no search
+        if (!$request->has('search')) {
+            $currentUserId = Auth::id();
+            $alreadyFollowingIds = Follower::where('follower', $currentUserId)->pluck('cre_id');
+        
+            $suggested = Creator::whereNotIn('id', $alreadyFollowingIds)
+                ->where('id', '!=', $currentUserId)
+                ->inRandomOrder()
+                ->limit(5)
+                ->get(['id', 'username', 'name', 'profile_photo']);
+        }
+        
+        return response()->json([
+            'followers' => $followers,
+            'suggested' => $suggested
+        ]);
     }
 
     public function fetchFollowing($creatorId, Request $request)
@@ -367,7 +388,23 @@ class CreatorController extends Controller
             ->get()
             ->pluck('followingUser');
 
-        return response()->json($following);
-    }
+        $suggested = [];
 
+        // Only send suggestions if there's no search
+        if (!$request->has('search')) {
+            $currentUserId = Auth::id();
+            $alreadyFollowingIds = Following::where('whom', $currentUserId)->pluck('cre_id');
+        
+            $suggested = Creator::whereNotIn('id', $alreadyFollowingIds)
+                ->where('id', '!=', $currentUserId)
+                ->inRandomOrder()
+                ->limit(5)
+                ->get(['id', 'username', 'name', 'profile_photo']);
+        }
+        
+        return response()->json([
+            'following' => $following,
+            'suggested' => $suggested
+        ]);
+    }
 }

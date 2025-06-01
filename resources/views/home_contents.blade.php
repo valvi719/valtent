@@ -4,6 +4,7 @@
 
 @section('content')
 
+
 <div class="container mx-auto px-4 py-6">
     <h1 class="text-3xl font-semibold text-center mb-6">Welcome to Your Feed</h1>
 
@@ -12,12 +13,23 @@
             <h2 class="text-xl font-semibold mb-3">Suggested for You</h2>
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 @foreach($suggestedCreators as $creator)
+                    @php
+                        $badge = getDonationBadgeStyle($creator->id);
+                    @endphp
                     <div class="flex flex-col items-center">
                         <a href="#" class="block relative w-16 h-16 rounded-full overflow-hidden mb-2">
                             <img src="{{ asset('storage/public/profile_photos/' . $creator->profile_photo) }}" alt="{{ $creator->name}}" class="w-full h-full object-cover">
                         </a>
-                        <a href="/{{$creator->username}}" class="text-sm font-semibold text-center hover:underline">{{ $creator->username }}</a>
-                        
+                        <a href="/{{$creator->username}}" class="text-sm font-semibold text-center hover:underline">{{ $creator->username }}  
+                            @if($badge)
+                            <span class="inline-flex items-center gap-1 text-white px-1 py-1 mb-3 text-xs font-semibold rounded-full" style="background-color: {{ $badge['color'] }};"
+                            title="{{ $badge['label'] }} (₹{{ number_format($badge['amount']) }})">
+                                <svg class="w14 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 00-1.414 0L9 11.586 6.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l7-7a1 1 0 000-1.414z" clip-rule="evenodd"></path>
+                                </svg>
+                            </span>
+                            @endif
+                        </a>
                         @auth
                             @if(auth()->id() !== $creator->id)
                                 <div class="mt-1">
@@ -51,20 +63,40 @@
                     <!-- Profile Image -->
                     <img src="{{ asset('storage/public/profile_photos/' . $content->creator->profile_photo) }}" alt="User Avatar" class="w-12 h-12 rounded-full mr-3">
                     <div class="flex flex-col flex-grow">
+                    @php
+                        $badge = getDonationBadgeStyle($content->cre_id);
+                    @endphp
                         @if(Auth::user()->username == $content->creator->username)
-                            <a href="me/{{ $content->creator->username }}" class="font-semibold text-lg">{{ $content->creator->username }}</a>
+                            <a href="me/{{ $content->creator->username }}" class="font-semibold text-lg">{{ $content->creator->username }} 
+                                @if($badge)
+                                    <span class="inline-flex items-center gap-1 text-white px-1 py-1 mb-3 text-xs font-semibold rounded-full" style="background-color: {{ $badge['color'] }};"
+                                    title="{{ $badge['label'] }} (₹{{ number_format($badge['amount']) }})">
+                                        <svg class="w14 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 00-1.414 0L9 11.586 6.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l7-7a1 1 0 000-1.414z" clip-rule="evenodd"></path>
+                                        </svg>
+                                    </span>
+                                @endif
+                            </a>
                         @else
-                            <a href="{{ $content->creator->username }}" class="font-semibold text-lg">{{ $content->creator->username }}</a>
+                            <a href="{{ $content->creator->username }}" class="font-semibold text-lg">{{ $content->creator->username }} 
+                                @if($badge)
+                                    <span class="inline-flex items-center gap-1 text-white px-1 py-1 mb-3 text-xs font-semibold rounded-full" style="background-color: {{ $badge['color'] }};" title="{{ $badge['label'] }} (₹{{ number_format($badge['amount']) }})">
+                                        <svg class="w14 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 00-1.414 0L9 11.586 6.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l7-7a1 1 0 000-1.414z" clip-rule="evenodd"></path>
+                                        </svg>
+                                    </span>
+                                @endif
+                            </a>
                         @endif    
                         <p class="text-gray-500 text-sm">{{ $content->created_at->diffForHumans() }}</p>
                     </div>
-                    <button class="donate-btn px-4 py-1 rounded-full transition duration-300 bg-green-500 text-white hover:bg-green-600" 
+                    <button data-open-donation-modal class="donate-btn px-4 py-1 rounded-full transition duration-300 bg-green-500 text-white hover:bg-green-600" 
                         data-content-id="{{ $content->id }}" 
                         data-recipient-id="{{ $content->cre_id }}" 
                         onclick="openDonationModal({{ $content->id }},{{ $content->cre_id }})">
                         Donate
                     </button>
-                    <button class="donate-btn px-4 py-1 rounded-full transition duration-300 bg-green-500 text-white hover:bg-green-600"
+                    <button data-open-donors-modal class="donate-btn px-4 py-1 rounded-full transition duration-300 bg-green-500 text-white hover:bg-green-600"
                         onclick="openDonatorsModal({{ $content->id }})">
                         Donors
                     </button>
@@ -307,6 +339,23 @@
             alert(data.error ||'Something went wrong.');
         });
     }
+
+    //Close Donation Modal Outside Click
+    document.addEventListener('click', function (e) {
+        const modal = document.getElementById('donationModal');
+        const modalContent = modal?.querySelector('.bg-white');
+
+        // Only trigger close if modal is open AND click is outside content
+        if (
+            modal?.classList.contains('display-donation-modal') &&
+            modalContent &&
+            !modalContent.contains(e.target) &&
+            !e.target.closest('[data-open-donation-modal]') // Prevent immediate close if clicking open button
+        ) {
+            closeDonationModal();
+        }
+    });
+
 </script>
 <!-- Donation/Donors  code -->
 <script>
@@ -319,6 +368,10 @@
         donationModal.classList.remove('donot-display-donors-modal');
         donationModal.classList.add('display-donors-modal');
         fetchDonors(contentId, '');
+    }
+    
+    function number_format(number) {
+        return new Intl.NumberFormat('en-IN').format(number);
     }
 
     function fetchDonors(contentId, search = '') {
@@ -345,7 +398,19 @@
                         leftSection.innerHTML = `
                             <img src="/storage/public/profile_photos/${donor.profile_photo}" class="w-10 h-10 rounded-full object-cover">
                             <div>
-                                <p class="font-semibold">${donor.username}</p>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-medium">${donor.username}</span>
+                                    ${donor.badge_color && donor.badge_label ? `
+                                        <span class="inline-flex items-center gap-1 text-white px-1 py-1 mb2 text-xs font-semibold rounded-full"
+                                            style="background-color: ${donor.badge_color};"
+                                            title="${donor.badge_label} (₹${number_format(donor.total_amount)})">
+                                            <svg class="w14 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd"
+                                                    d="M16.707 5.293a1 1 0 00-1.414 0L9 11.586 6.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l7-7a1 1 0 000-1.414z"
+                                                    clip-rule="evenodd"></path>
+                                            </svg>
+                                        </span>` : ''}
+                                </div>
                                 <p class="text-sm text-gray-600">₹${parseFloat(donor.total_amount).toFixed(2)}</p>
                             </div>
                         `;
@@ -424,8 +489,15 @@
     // Outside click closes modal
     document.addEventListener('click', function (e) {
         const modal = document.getElementById('donorsModal');
-        const inner = modal.querySelector('div');
-        if (modal.style.display === 'flex' && !inner.contains(e.target)) {
+        const modalContent = modal?.querySelector('.bg-white');
+
+        // Only trigger close if modal is open AND click is outside content
+        if (
+            modal?.classList.contains('display-donors-modal') &&
+            modalContent &&
+            !modalContent.contains(e.target) &&
+            !e.target.closest('[data-open-donors-modal]') // Prevent immediate close if clicking open button
+        ) {
             closeDonorsModal();
         }
     });

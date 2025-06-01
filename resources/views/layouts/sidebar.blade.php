@@ -165,24 +165,30 @@ document.addEventListener('DOMContentLoaded', () => {
             creators.forEach(creator => {
                 const li = document.createElement('li');
 
-                if(creator.id === creator.loggedInUserId)
-                {
-                    li.innerHTML = `
-                    <a href="${window.baseUrl}/me/${creator.username}" class="flex items-center space-x-3 hover:bg-gray-100 p-2 rounded">
-                        <img src="${creator.profile_photo}" alt="${creator.username}" class="w-8 h-8 rounded-full object-cover">
-                        <span class="text-sm font-medium">${creator.username}</span>
-                    </a>
-                `;
-                    
-                }else{
+                const profileLink = creator.id === creator.loggedInUserId
+                    ? `${window.baseUrl}/me/${creator.username}`
+                    : `/${creator.username}`;
 
-                    li.innerHTML = `
-                    <a href="/${creator.username}" class="flex items-center space-x-3 hover:bg-gray-100 p-2 rounded">
+                li.innerHTML = `
+                    <a href="${profileLink}" class="flex items-center space-x-3 hover:bg-gray-100 p-2 rounded">
                         <img src="${creator.profile_photo}" alt="${creator.username}" class="w-8 h-8 rounded-full object-cover">
-                        <span class="text-sm font-medium">${creator.username}</span>
+                        <span class="text-sm font-medium flex items-center gap-2">
+                            ${creator.username}
+                            ${creator.badge_color ? `
+                                <span class="inline-flex items-center gap-1 text-white px-1 py-1 text-xs font-semibold rounded-full"
+                                    style="background-color: ${creator.badge_color};"
+                                    title="${creator.badge_label} (₹${creator.badge_amount})">
+                                    <svg class="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 00-1.414 0L9 11.586 
+                                            6.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l7-7a1 1 0 
+                                            000-1.414z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </span>
+                            ` : ''}
+                        </span>
                     </a>
                 `;
-                }
+
                 searchResults.appendChild(li);
             });
         } catch (err) {

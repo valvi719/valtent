@@ -13,7 +13,16 @@
 
         <!-- Profile Info -->
         <div class="text-center md:text-left">
-            <h2 class="text-2xl font-bold">{{ $creator->name }}</h2>
+            <h2 class="text-2xl font-bold">{{ $creator->username }} 
+            @if($badge)
+                        <span class="inline-flex items-center gap-1 text-white px-1 py-1 mb-3 text-xs font-semibold rounded-full" style="background-color: {{ $badge['color'] }};" title="{{ $badge['label'] }} (₹{{ number_format($badge['amount']) }})">
+                            <svg class="w14 h-4 text-xl text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 00-1.414 0L9 11.586 6.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l7-7a1 1 0 000-1.414z" clip-rule="evenodd"></path>
+                            </svg>
+                        </span>
+             @endif
+            </h2>
+            
             <div class="flex justify-center md:justify-start space-x-6 mt-2 text-gray-600">
                 <span><strong>{{ $contents->count() }}</strong> contents</span>
                 <button onclick="openFollowingModal('{{ $creator->id }}')" class="text-black-500">
