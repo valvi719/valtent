@@ -285,7 +285,6 @@ function fetchFollowList(creatorId, type, searchTerm = '') {
         clearSearchButton.classList.remove('hidden');
     }
 
-
     fetch(url)
         .then(response => response.json())
         .then(data => {
@@ -293,34 +292,74 @@ function fetchFollowList(creatorId, type, searchTerm = '') {
             container.innerHTML = '';
 
             const creatorlist = type === 'followers' ? data.followers : data.following;
-        
+
             if (!creatorlist || creatorlist.length === 0) {
                 container.innerHTML = `<p class="text-center text-gray-500">No ${type} found${searchTerm ? ' matching your search' : ''}.</p>`;
                 return;
             }
-        
-            // Render followers/following
+
+            const loggedInUserId = window.loggedInUserId;
+
+            // Main list
             creatorlist.forEach(user => {
-                const profileLink = `${window.baseUrl}/${user.username}`;
+                const isCurrentUser = user.id === loggedInUserId;
+                const profileLink = isCurrentUser ? `/me/${user.username}` : `/${user.username}`;
+                const isFollowing = user.is_following;
+
+                const btnClass = isFollowing
+                    ? 'px-4 py-1 rounded-full transition duration-300 bg-white text-black border border-black hover:bg-gray-100'
+                    : 'px-4 py-1 rounded-full transition duration-300 bg-green-500 text-white hover:bg-green-600';
+
+                const btnLabel = isFollowing ? 'Unfollow' : 'Follow';
+
                 container.innerHTML += `
-                    <a href="${profileLink}" class="flex items-center space-x-3 hover:bg-gray-100 p-2 rounded">
-                        <img src="${window.baseUrl}/storage/public/profile_photos/${user.profile_photo}" alt="${user.username}" class="w-8 h-8 rounded-full object-cover">
-                        <span class="text-sm font-medium">${user.username}</span>
-                    </a>
-                `;
-            });
-        
-            // Render suggested at the end
-            if (!searchTerm && data.suggested && data.suggested.length > 0) {
-                container.innerHTML += `<hr class="my-2 border-gray-300"><p class="text-sm font-semibold text-gray-600 mb-1">Suggested</p>`;
-                data.suggested.forEach(user => {
-                    const profileLink = `${window.baseUrl}/${user.username}`;
-                    container.innerHTML += `
-                        <a href="${profileLink}" class="flex items-center space-x-3 hover:bg-gray-100 p-2 rounded">
+                    <div class="flex justify-between items-center hover:bg-gray-100 p-2 rounded">
+                        <a href="${profileLink}" class="flex items-center space-x-3">
                             <img src="${window.baseUrl}/storage/public/profile_photos/${user.profile_photo}" alt="${user.username}" class="w-8 h-8 rounded-full object-cover">
                             <span class="text-sm font-medium">${user.username}</span>
                         </a>
+                        ${!isCurrentUser ? `
+                            <button id="follow-btn-${user.id}" data-creator-id="${user.id}" onclick="toggleFollow(${user.id}, this)" class="${btnClass}">
+                                ${btnLabel}
+                            </button>
+                        ` : `<span class="text-sm text-gray-400">You</span>`}
+                    </div>
+                `;
+            });
+
+            // Suggested
+            if (!searchTerm && data.suggested && data.suggested.length > 0) {
+                container.innerHTML += `<hr class="my-2 border-gray-300"><p class="text-sm font-semibold text-gray-600 mb-1">Suggested</p>`;
+
+                data.suggested.forEach(user => {
+                    const isCurrentUser = user.id === loggedInUserId;
+                    const profileLink = isCurrentUser ? `/me/${user.username}` : `/${user.username}`;
+                    const alreadyFollowing = user.is_following;
+
+                    let userDisplay = `
+                        <div class="flex items-center justify-between hover:bg-gray-100 p-2 rounded">
+                            <a href="${profileLink}" class="flex items-center space-x-3">
+                                <img src="${window.baseUrl}/storage/public/profile_photos/${user.profile_photo}" alt="${user.username}" class="w-8 h-8 rounded-full object-cover">
+                                <span class="text-sm font-medium">${user.username}</span>
+                                ${isCurrentUser ? '<span class="ml-1 text-xs text-gray-500">(You)</span>' : ''}
+                            </a>
                     `;
+
+                    if (!isCurrentUser) {
+                        const btnLabel = alreadyFollowing ? 'Unfollow' : 'Follow';
+                        const btnClass = alreadyFollowing
+                            ? 'px-4 py-1 rounded-full transition duration-300 bg-white text-black border border-black hover:bg-gray-100'
+                            : 'px-4 py-1 rounded-full transition duration-300 bg-green-500 text-white hover:bg-green-600';
+
+                        userDisplay += `
+                            <button onclick="toggleFollow(${user.id}, this)" class="${btnClass}">
+                                ${btnLabel}
+                            </button>
+                        `;
+                    }
+
+                    userDisplay += `</div>`;
+                    container.innerHTML += userDisplay;
                 });
             }
         })
@@ -339,4 +378,27 @@ function searchFollowersFollowing() {
 function clearFollowSearch() {
     document.getElementById('followSearchInput').value = '';
     fetchFollowList(currentCreatorId, currentFollowType);
-}   
+}  
+
+function toggleFollow(userId, btn) {
+    fetch(`/creator/${userId}/toggle-follow`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json',
+        },
+        body: JSON.stringify({}) // Laravel expects a body in POST
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.status === 'followed') {
+            btn.className = 'px-4 py-1 rounded-full transition duration-300 bg-white text-black border border-black hover:bg-gray-100';
+            btn.textContent = 'Unfollow';
+        } else if (result.status === 'unfollowed') {
+            btn.className = 'px-4 py-1 rounded-full transition duration-300 bg-green-500 text-white hover:bg-green-600';
+            btn.textContent = 'Follow';
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}

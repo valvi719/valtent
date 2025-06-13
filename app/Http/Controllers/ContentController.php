@@ -19,6 +19,7 @@ use App\Models\Creator;
 use App\Models\Follower;
 use App\Models\Following;
 use App\Models\Donator;
+use App\Models\Moment;
 
 class ContentController extends Controller
 {
@@ -235,55 +236,62 @@ class ContentController extends Controller
     {
         try {
             $content = Content::findOrFail($contentId);
-            $creatorId = Auth::id(); // Get the logged-in user's ID
+            $creatorId = Auth::id();
 
             if ($creatorId == null) {
                 return redirect()->route('login'); 
             }
 
-            // Fetch the conbank record for the user
-            // $conbank = Conbank::where('cre_id', $creatorId)->first();
-
-            // Block like/unlike if conbank is missing or balance is null
-            // if (!$conbank || is_null($conbank->balance)) {
-            //     return response()->json(['error' => 'Please add balance to your wallet.'], 403);
-            // }
-
-            // Check if the user has already liked the content
             $existingLike = ContentLike::where('con_id', $contentId)
                                     ->where('liked_by', $creatorId)
                                     ->first();
 
             if ($existingLike) {
-                // Unlike
                 $existingLike->delete();
+
+                // Optionally delete the like moment if desired
+                Moment::where('cre_id', $content->cre_id)
+                    ->where('triggered_by', $creatorId)
+                    ->where('type', 'like')
+                    ->where('link', '/content/' . $contentId)
+                    ->delete();
+
                 $message = 'unliked';
-                // $conbank->balance += 1;
             } else {
-                // Like
                 ContentLike::create([
                     'con_id' => $contentId,
                     'liked_by' => $creatorId,
                     'name' => 'Like',
                 ]);
                 $message = 'liked';
-                // $conbank->balance -= 1;
+
+                // Create or update a Moment for the content owner
+                if ($creatorId != $content->cre_id) {
+                    Moment::updateOrCreate(
+                        [
+                            'cre_id' => $content->cre_id,
+                            'triggered_by' => $creatorId,
+                            'type' => 'like',
+                            'link' => '/content/' . $contentId,
+                        ],
+                        [
+                            'message' => 'liked your content.',
+                            'created_at' => now(), // updates timestamp
+                            'updated_at' => now(),
+                        ]
+                    );
+                }
             }
 
-            // $conbank->save();
-
-            // Return the response
             return response()->json([
                 'message' => $message,
                 'like_count' => $content->likes()->count(),
             ]);
 
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Something went wrong. Please try again.'], 500);
+            return response()->json(['error' => 'Something went wrong.'], 500);
         }
     }
-
-
     public function extract($contentId)
     {
         $authUserId = Auth::id();
@@ -329,15 +337,14 @@ class ContentController extends Controller
     public function toggleFollow(Creator $creator)
     {
         $currentUserId = auth()->id();
+        
         $targetCreatorId = $creator->id;
 
-        // Check if current user is already following the target
         $isFollowing = Follower::where('cre_id', $targetCreatorId)
                         ->where('follower', $currentUserId)
                         ->exists();
 
         if ($isFollowing) {
-            // Unfollow - Remove both follower and following records
             Follower::where('cre_id', $targetCreatorId)
                 ->where('follower', $currentUserId)
                 ->delete();
@@ -346,9 +353,15 @@ class ContentController extends Controller
                 ->where('whom', $targetCreatorId)
                 ->delete();
 
+            // Optionally delete the moment entry as well
+            Moment::where('cre_id', $targetCreatorId)
+                ->where('triggered_by', $currentUserId)
+                ->where('type', 'follow')
+                ->where('link', '/creator/' . $currentUserId)
+                ->delete();
+
             return response()->json(['status' => 'unfollowed']);
         } else {
-            // Follow - Add both follower and following records
             Follower::create([
                 'cre_id' => $targetCreatorId,
                 'follower' => $currentUserId,
@@ -359,11 +372,26 @@ class ContentController extends Controller
                 'whom' => $targetCreatorId,
             ]);
 
+            // Prevent duplicate moment
+            if ($currentUserId != $targetCreatorId) {
+                Moment::updateOrCreate(
+                    [
+                        'cre_id' => $targetCreatorId,
+                        'triggered_by' => $currentUserId,
+                        'type' => 'follow',
+                        'link' => '/creator/' . $currentUserId,
+                    ],
+                    [
+                        'message' => 'started following you.',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]
+                );
+            }
+
             return response()->json(['status' => 'followed']);
         }
-
     }
-
     //Donation 
     public function donate(Request $request)
     {
@@ -396,6 +424,18 @@ class ContentController extends Controller
         $bank = Conbank::firstOrCreate(['cre_id' => $request->recipient_id]);
         $bank->balance += $request->amount;
         $bank->save();
+
+        // Create a new moment for donation
+        $donator = auth()->user();
+        $content = Content::find($request->content_id);
+
+        Moment::create([
+            'cre_id' => $request->recipient_id, // The recipient gets the moment
+            'triggered_by' => $donator->id,
+            'type' => 'donation',
+            'message' => "🎉 donated ₹{$request->amount} to your content!",
+            'link' => "/content/{$content->id}",
+        ]);
         
         return response()->json(['success' => true]);
     }

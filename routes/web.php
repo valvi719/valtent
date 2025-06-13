@@ -101,6 +101,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/creator/{creatorId}/followers', [CreatorController::class, 'fetchFollowers']);
     Route::get('/creator/{creatorId}/following', [CreatorController::class, 'fetchFollowing']);
 
+    //Moments
+    Route::get('/moments/fetch', [App\Http\Controllers\MomentController::class, 'fetch'])->middleware('auth');
+
+
 });
 Route::get('/privacy-policy', [InstagramController::class, 'privacypolicy']);
 

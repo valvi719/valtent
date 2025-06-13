@@ -10,6 +10,7 @@
         <a href="/wallet" class="block px-4 py-2 rounded hover:bg-green-700" role="menuitem">💰 Wallet</a>
         <a href="{{ route('content.create', ['id' => Crypt::encrypt(Auth::id())]) }}" class="block px-4 py-2 rounded hover:bg-green-700" role="menuitem">➕ Create</a>
         <a href="#" class="block px-4 py-2 rounded hover:bg-green-700" role="menuitem">🔗 Connect</a>
+        <a href="#" id="openMoments" class="block px-4 py-2 rounded hover:bg-green-700" role="menuitem">📸 Moments</a>
     </nav>
 
     @auth
@@ -55,6 +56,7 @@
             <a href="/wallet" class="block px-4 py-2 rounded hover:bg-green-700" role="menuitem">💰 Wallet</a>
             <a href="{{ route('content.create', ['id' => Crypt::encrypt(Auth::id())]) }}" class="block px-4 py-2 rounded hover:bg-green-700" role="menuitem">➕ Create</a>
             <a href="#" class="block px-4 py-2 rounded hover:bg-green-700" role="menuitem">🔗 Connect</a>
+            <a href="#" id="openMomentsMobile" class="block px-4 py-2 rounded hover:bg-green-700" role="menuitem">📸 Moments</a>
         </nav>
 
         @auth
@@ -93,6 +95,21 @@
     </div>
 </div>
 
+<!-- Moments Modal -->
+<div id="momentsModal" class="hidden fixed inset-0 z-[120] bg-black bg-opacity-50 flex justify-center items-start pt-24">
+    <div class="bg-white w-full max-w-md max-h-[60vh] rounded-md shadow-lg overflow-y-auto">
+        <!-- Modal Header -->
+        <div class="flex justify-between items-center px-4 py-2 border-b sticky top-0 bg-white z-10">
+            <h2 class="text-base font-semibold">Moments</h2>
+            <button id="closeMomentsModal" class="text-gray-500 hover:text-gray-700 text-xl">&times;</button>
+        </div>
+
+        <!-- Modal Body -->
+        <div id="momentsContent" class="px-3 py-2 space-y-3">
+            <!-- Moments will be dynamically loaded here -->
+        </div>
+    </div>
+</div>
 
 <script>
     window.baseUrl = '{{ url('/') }}'; 
@@ -215,6 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 // Close search popup on outside click
 document.addEventListener('click', function (e) {
+    
         const popup = document.getElementById('searchPopup');
         const popupContent = popup?.querySelector('.bg-white');
 
@@ -231,6 +249,159 @@ document.addEventListener('click', function (e) {
             searchInput.value = '';
         }
 });
+
+    // Moments modal toggle
+    const openMomentsBtns = [
+        document.getElementById('openMoments'),
+        document.getElementById('openMomentsMobile')
+    ];
+    const momentsModal = document.getElementById('momentsModal');
+    const closeMomentsModal = document.getElementById('closeMomentsModal');
+
+    openMomentsBtns.forEach(btn => {
+        btn?.addEventListener('click', () => {
+            momentsModal.classList.remove('hidden');
+        });
+    });
+
+    closeMomentsModal?.addEventListener('click', () => {
+        momentsModal.classList.add('hidden');
+    });
+
+    // Close moments modal on outside click
+    document.addEventListener('DOMContentLoaded', () => {
+        const momentsModal = document.getElementById('momentsModal');
+        const openMomentsBtns = [
+            document.getElementById('openMoments'),
+            document.getElementById('openMomentsMobile')
+        ];
+        const closeMomentsModal = document.getElementById('closeMomentsModal');
+        const modalContent = momentsModal.querySelector('.bg-white');
+
+        // Show modal on button click
+        openMomentsBtns.forEach(btn => {
+            btn?.addEventListener('click', (e) => {
+                e.preventDefault();
+                momentsModal.classList.remove('hidden');
+            });
+        });
+
+        // Close modal on close button click
+        closeMomentsModal?.addEventListener('click', () => {
+            momentsModal.classList.add('hidden');
+        });
+
+        // Close modal on outside click
+        document.addEventListener('click', function (e) {
+            if (
+                !momentsModal.classList.contains('hidden') &&
+                !modalContent.contains(e.target) &&
+                !e.target.closest('#openMoments') &&
+                !e.target.closest('#openMomentsMobile')
+            ) {
+                momentsModal.classList.add('hidden');
+            }
+        });
+    });
+
+
+</script>
+
+<script>
+     function fetchMoments() {
+        fetch('/moments/fetch')
+            .then(response => response.json())
+            .then(data => {
+                const container = document.querySelector('#momentsModal div > div:last-child');
+
+                if (data.length > 0) {
+                    container.innerHTML = data.map(m => {
+                        const actor = m.actor;
+                        const profileLink = `/${actor.username}`;
+                        const photo = actor.profile_photo
+                            ? `/storage/public/profile_photos/${actor.profile_photo}`
+                            : '/default-avatar.jpg';
+
+                        let mediaElement = '';
+                        if (m.media_url) {
+                            if (m.media_url.endsWith('.mp4')) {
+                                mediaElement = `
+                                    <video src="${m.media_url}" class="w-16 h-16 object-cover rounded" muted loop playsinline></video>
+                                `;
+                            } else {
+                                mediaElement = `
+                                    <img src="${m.media_url}" class="w-16 h-16 object-cover rounded" alt="media">
+                                `;
+                            }
+                        }
+
+                        // Conditionally show follow or unfollow button
+                        let followButton = '';
+                        if (m.type === 'follow') {
+                            const buttonText = m.is_following_actor ? 'Unfollow' : 'Follow';
+                            const buttonClass = m.is_following_actor
+                                ? 'bg-white text-black border border-black hover:bg-gray-100'
+                                : 'bg-green-500 text-white hover:bg-green-600';
+
+                            followButton = `
+                                <button id="follow-btn-${actor.id}" data-creator-id="${actor.id}"
+                                    onclick="toggleFollow(${actor.id}, this)"
+                                    class="ml-2 px-4 py-1 rounded-full transition duration-300 ${buttonClass}">
+                                    ${buttonText}
+                                </button>
+                            `;
+                        }
+
+                        return `
+                            <div class="flex items-center space-x-3 py-3 border-b">
+                                <a href="${profileLink}">
+                                    <img src="${photo}" class="w-9 h-9 rounded-full object-cover mt-1" alt="${actor.username}">
+                                </a>
+                                <div class="flex justify-between items-center w-full">
+                                    <div class="flex-1 pr-2 text-sm">
+                                        <div class="flex justify-between items-center">
+                                            <p class="flex items-center flex-wrap">
+                                                <a href="${profileLink}" class="font-semibold hover:underline mr-1">${actor.username}</a>
+                                                ${m.type === 'donation' ? `<span class="text-green-600 font-semibold">${m.message}</span>` : m.message}
+                                            </p>
+                                            ${followButton}
+                                        </div>
+                                        <p class="text-xs text-gray-500 mt-0.5">${m.created_at}</p>
+                                    </div>
+                                    ${mediaElement ? `<a href="${m.link}" onclick="event.preventDefault();">${mediaElement}</a>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    container.innerHTML = '<p class="text-gray-600">You have no new moments.</p>';
+                }
+            });
+    }
+    setInterval(fetchMoments, 10000);
+    document.addEventListener("DOMContentLoaded", fetchMoments);
+    function toggleFollow(userId, btn) {
+        fetch(`/creator/${userId}/toggle-follow`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({}) // Laravel expects a body in POST
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.status === 'followed') {
+                btn.className = 'px-4 py-1 rounded-full transition duration-300 bg-white text-black border border-black hover:bg-gray-100';
+                btn.textContent = 'Unfollow';
+            } else if (result.status === 'unfollowed') {
+                btn.className = 'px-4 py-1 rounded-full transition duration-300 bg-green-500 text-white hover:bg-green-600';
+                btn.textContent = 'Follow';
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
 </script>
 
 <!-- Optional: Style offset for main content -->
@@ -247,4 +418,19 @@ document.addEventListener('click', function (e) {
     #closeSearchPopup{
     font-size: 28px;
     }
+    #closeMomentsModal{
+    font-size: 28px;
+    }
+    #searchPopup {
+    z-index: 110;
+    }
+
+    #momentsModal {
+        z-index: 120;
+    }
+
+    #mobileSidebar {
+        z-index: 130;
+    }
+ 
 </style>

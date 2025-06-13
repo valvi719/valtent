@@ -351,6 +351,14 @@ class CreatorController extends Controller
         $followers = $query->limit(50)
             ->get()
             ->pluck('followerUser');
+        $currentUserId = Auth::id();
+        $followingIds = Follower::where('follower', $currentUserId)->pluck('cre_id')->toArray();
+        $followers = $followers->map(function ($user) use ($currentUserId, $followingIds) {
+            $user->is_following = in_array($user->id, $followingIds);
+            return $user;
+        });
+        
+        
         $suggested = [];
 
         // Only send suggestions if there's no search
@@ -359,10 +367,14 @@ class CreatorController extends Controller
             $alreadyFollowingIds = Follower::where('follower', $currentUserId)->pluck('cre_id');
         
             $suggested = Creator::whereNotIn('id', $alreadyFollowingIds)
-                ->where('id', '!=', $currentUserId)
-                ->inRandomOrder()
-                ->limit(5)
-                ->get(['id', 'username', 'name', 'profile_photo']);
+            ->where('id', '!=', $currentUserId)
+            ->inRandomOrder()
+            ->limit(5)
+            ->get(['id', 'username', 'name', 'profile_photo', 'id'])
+            ->map(function ($user) {
+                $user->is_following = false;
+                return $user;
+            });
         }
         
         return response()->json([
@@ -387,6 +399,12 @@ class CreatorController extends Controller
         $following = $query->limit(50)
             ->get()
             ->pluck('followingUser');
+        $currentUserId = Auth::id();
+        $followingIds = Follower::where('follower', $currentUserId)->pluck('cre_id')->toArray();
+        $following = $following->map(function ($user) use ($followingIds) {
+            $user->is_following = in_array($user->id, $followingIds);
+            return $user;
+        });
 
         $suggested = [];
 
@@ -396,10 +414,14 @@ class CreatorController extends Controller
             $alreadyFollowingIds = Following::where('whom', $currentUserId)->pluck('cre_id');
         
             $suggested = Creator::whereNotIn('id', $alreadyFollowingIds)
-                ->where('id', '!=', $currentUserId)
-                ->inRandomOrder()
-                ->limit(5)
-                ->get(['id', 'username', 'name', 'profile_photo']);
+            ->where('id', '!=', $currentUserId)
+            ->inRandomOrder()
+            ->limit(5)
+            ->get(['id', 'username', 'name', 'profile_photo', 'id'])
+            ->map(function ($user) {
+                $user->is_following = false;
+                return $user;
+            });
         }
         
         return response()->json([
